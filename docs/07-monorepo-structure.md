@@ -163,12 +163,16 @@ Authenticated API Worker for adding new products and listings via the Curation D
 
 **Endpoints:**
 ```
-GET  /health                → Health check (authenticated)
-POST /api/products          → Create canonical product
-POST /api/listings          → Add a new platform listing
-GET  /api/listings/:id      → Get listing details
-PATCH /api/listings/:id     → Update listing
-POST /api/listings/:id/scrape  → Trigger manual re-scrape
+GET    /health                → Health check (authenticated)
+POST   /api/products          → Create canonical product
+GET    /api/products          → List all canonical products
+GET    /api/products/:id      → Get product details
+PATCH  /api/products/:id      → Update product (partial update)
+DELETE /api/products/:id      → Soft delete product
+POST   /api/listings          → Add a new platform listing
+GET    /api/listings/:id      → Get listing details
+PATCH  /api/listings/:id     → Update listing
+POST   /api/listings/:id/scrape  → Trigger manual re-scrape
 ```
 
 **Tech Stack:**

@@ -76,11 +76,15 @@ An authenticated Worker endpoint called by the Curation Dashboard when you add a
 ### Endpoints
 
 ```
-POST /api/products          → Create canonical product
-POST /api/listings          → Add a new platform listing
-GET  /api/listings/:id      → Get listing details
-PATCH /api/listings/:id     → Update listing (mark inactive, change seller tier)
-POST /api/listings/:id/scrape  → Trigger manual re-scrape of a specific listing
+POST   /api/products          → Create canonical product
+GET    /api/products          → List all canonical products
+GET    /api/products/:id      → Get product details
+PATCH  /api/products/:id      → Update product (partial update)
+DELETE /api/products/:id      → Soft delete product
+POST   /api/listings          → Add a new platform listing
+GET    /api/listings/:id      → Get listing details
+PATCH  /api/listings/:id     → Update listing (mark inactive, change seller tier)
+POST   /api/listings/:id/scrape  → Trigger manual re-scrape of a specific listing
 ```
 
 ### Authentication

@@ -40,6 +40,28 @@ export interface ProductListResponse {
 }
 
 // -----------------------------------------------------------------------------
+// Update Product Types
+// -----------------------------------------------------------------------------
+
+export interface UpdateProductRequest {
+  name?: string
+  category?: string
+  model_number?: string
+  image_url?: string
+  is_active?: boolean
+}
+
+export interface UpdateProductResponse {
+  id: string
+  name: string
+  category: string | null
+  model_number: string | null
+  image_url: string | null
+  is_active: number
+  created_at: string
+}
+
+// -----------------------------------------------------------------------------
 // Health Types
 // -----------------------------------------------------------------------------
 
