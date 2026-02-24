@@ -2,14 +2,14 @@
 
 ## Overview
 
-JejakHarga uses a **pnpm-based monorepo** with **Turborepo** for build orchestration. This structure supports multiple Cloudflare Workers, shared packages, and Svelte SPA frontends deployed to Cloudflare Pages.
+Pricenesia uses a **pnpm-based monorepo** with **Turborepo** for build orchestration. This structure supports multiple Cloudflare Workers, shared packages, and Svelte SPA frontends deployed to Cloudflare Pages.
 
 ---
 
 ## Directory Structure
 
 ```
-jejakharga/
+pricenesia/
 ├── docs/                          # Project documentation
 ├── packages/
 │   ├── shared/                    # Shared code across all workers
@@ -104,15 +104,15 @@ Shared utilities, types, and database logic used across all Workers.
 - None (pure TypeScript)
 
 **Exports:**
-- `@jejakharga/shared/db` — D1 query builders, schema constants
-- `@jejakharga/shared/types` — TypeScript interfaces for canonical_products, platform_listings, price_snapshots
-- `@jejakharga/shared/utils` — Helper functions (date formatting, price validation, etc.)
+- `@pricenesia/shared/db` — D1 query builders, schema constants
+- `@pricenesia/shared/types` — TypeScript interfaces for canonical_products, platform_listings, price_snapshots
+- `@pricenesia/shared/utils` — Helper functions (date formatting, price validation, etc.)
 
 **Usage in other packages:**
 ```ts
-import { CanonicalProduct, Listing } from '@jejakharga/shared/types'
-import { getLatestPrices } from '@jejakharga/shared/db'
-import { formatPriceIDR, validatePrice } from '@jejakharga/shared/utils'
+import { CanonicalProduct, Listing } from '@pricenesia/shared/types'
+import { getLatestPrices } from '@pricenesia/shared/db'
+import { formatPriceIDR, validatePrice } from '@pricenesia/shared/utils'
 ```
 
 ---
@@ -122,10 +122,10 @@ import { formatPriceIDR, validatePrice } from '@jejakharga/shared/utils'
 Platform-specific scraping adapters. Each adapter exports a consistent interface.
 
 **Dependencies:**
-- `@jejakharga/shared/types`
+- `@pricenesia/shared/types`
 
 **Exports:**
-- `@jejakharga/adapters` — Platform adapter registry and types
+- `@pricenesia/adapters` — Platform adapter registry and types
 
 **Interface:**
 ```ts
@@ -164,8 +164,8 @@ POST /api/listings/:id/scrape  → Trigger manual re-scrape
 ```
 
 **Dependencies:**
-- `@jejakharga/shared`
-- `@jejakharga/adapters`
+- `@pricenesia/shared`
+- `@pricenesia/adapters`
 
 ---
 
@@ -182,8 +182,8 @@ Daily price refresh Workflow with Browser Rendering. Orchestrates scraping acros
 - Manual: via Ingestion API for first-scrape
 
 **Dependencies:**
-- `@jejakharga/shared`
-- `@jejakharga/adapters`
+- `@pricenesia/shared`
+- `@pricenesia/adapters`
 
 ---
 
@@ -201,7 +201,7 @@ GET /              → 301 redirect to main storefront
 ```
 
 **Dependencies:**
-- `@jejakharga/shared`
+- `@pricenesia/shared`
 
 ---
 
@@ -222,7 +222,7 @@ Post-scrape health checks and price drop alerts.
 4. Price drops > 15%
 
 **Dependencies:**
-- `@jejakharga/shared`
+- `@pricenesia/shared`
 
 ---
 
@@ -247,7 +247,7 @@ Internal admin UI for managing products, sellers, and listings. Built with Svelt
 ```
 
 **Dependencies:**
-- `@jejakharga/shared/types` (for type definitions only)
+- `@pricenesia/shared/types` (for type definitions only)
 
 **Deployment:**
 - Cloudflare Pages (SPA mode)
@@ -274,7 +274,7 @@ Public-facing price comparison and tracking UI. Built with Svelte and deployed t
 ```
 
 **Dependencies:**
-- `@jejakharga/shared/types` (for type definitions only)
+- `@pricenesia/shared/types` (for type definitions only)
 
 **Deployment:**
 - Cloudflare Pages (SPA mode)
@@ -288,7 +288,7 @@ Public-facing price comparison and tracking UI. Built with Svelte and deployed t
 
 ```json
 {
-  "name": "jejakharga",
+  "name": "pricenesia",
   "private": true,
   "scripts": {
     "build": "turbo run build",
@@ -396,8 +396,8 @@ pnpm build
 pnpm dev
 
 # Run specific package
-pnpm --filter @jejakharga/scraper dev
-pnpm --filter @jejakharga/storefront dev
+pnpm --filter @pricenesia/scraper dev
+pnpm --filter @pricenesia/storefront dev
 ```
 
 ### Building
@@ -407,7 +407,7 @@ pnpm --filter @jejakharga/storefront dev
 pnpm build
 
 # Build specific package
-pnpm --filter @jejakharga/shared build
+pnpm --filter @pricenesia/shared build
 ```
 
 ### Linting
@@ -426,16 +426,16 @@ Each Worker package has its own `wrangler.toml` and can be deployed independentl
 
 ```bash
 # Deploy ingestion API
-pnpm --filter @jejakharga/ingestion-api deploy
+pnpm --filter @pricenesia/ingestion-api deploy
 
 # Deploy scraper workflow
-pnpm --filter @jejakharga/scraper deploy
+pnpm --filter @pricenesia/scraper deploy
 
 # Deploy redirector
-pnpm --filter @jejakharga/redirector deploy
+pnpm --filter @pricenesia/redirector deploy
 
 # Deploy health monitor
-pnpm --filter @jejakharga/health-monitor deploy
+pnpm --filter @pricenesia/health-monitor deploy
 ```
 
 ### Cloudflare Pages (Svelte SPAs)
@@ -444,10 +444,10 @@ The frontends are built as static SPAs and deployed to Cloudflare Pages:
 
 ```bash
 # Build storefront
-pnpm --filter @jejakharga/storefront build
+pnpm --filter @pricenesia/storefront build
 
 # Build curation dashboard
-pnpm --filter @jejakharga/curation-dashboard build
+pnpm --filter @pricenesia/curation-dashboard build
 ```
 
 Deployment can be automated via GitHub Actions or Cloudflare Pages' Git integration.
@@ -528,7 +528,7 @@ Alternatively, keep migrations in `packages/shared/db/migrations/` and document 
 
 ## Notes
 
-- **Shared types only**: Frontend packages should only import `@jejakharga/shared/types` to avoid bundling server-side code
+- **Shared types only**: Frontend packages should only import `@pricenesia/shared/types` to avoid bundling server-side code
 - **Independent deployments**: Each Worker/SPA can be deployed independently without affecting others
 - **Versioning**: Internal packages use `workspace:*` protocol, no need to publish to npm
 - **CI/CD**: Turborepo's caching speeds up CI pipelines significantly

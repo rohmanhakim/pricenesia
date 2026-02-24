@@ -1,12 +1,12 @@
 # Secret Management Guide
 
-This guide covers how to securely manage secrets and environment variables across the JejakHarga project.
+This guide covers how to securely manage secrets and environment variables across the Pricenesia project.
 
 ---
 
 ## Overview
 
-JejakHarga uses Cloudflare Workers, which provides a secure secrets management system. This project requires the following secrets:
+Pricenesia uses Cloudflare Workers, which provides a secure secrets management system. This project requires the following secrets:
 
 | Secret | Used By | Purpose |
 |--------|---------|---------|
@@ -166,8 +166,8 @@ For the Svelte SPAs (storefront, curation-dashboard), set environment variables 
 Prefix public variables with `PUBLIC_` to indicate they're safe for client-side exposure:
 
 ```bash
-PUBLIC_API_URL=https://api.jejakharga.com
-PUBLIC_REDIRECTOR_URL=https://go.jejakharga.com
+PUBLIC_API_URL=https://api.pricenesia.com
+PUBLIC_REDIRECTOR_URL=https://go.pricenesia.com
 ```
 
 ### In SvelteKit

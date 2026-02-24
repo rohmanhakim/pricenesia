@@ -1,8 +1,8 @@
-# JejakHarga: Indonesian Ecommerce Referral Aggregator — Architecture Overview
+# Pricenesia: Indonesian Ecommerce Referral Aggregator — Architecture Overview
 
 ## System Purpose
 
-JejakHarga is a curated price aggregation and referral platform targeting Indonesian ecommerce marketplaces (Tokopedia, Shopee, Blibli, Lazada, TikTok Shop). The system scrapes prices daily from manually curated product listings, injects affiliate referral URLs, stores historical price data, and serves it through a public storefront acting as a price tracker and cross-platform comparer.
+Pricenesia is a curated price aggregation and referral platform targeting Indonesian ecommerce marketplaces (Tokopedia, Shopee, Blibli, Lazada, TikTok Shop). The system scrapes prices daily from manually curated product listings, injects affiliate referral URLs, stores historical price data, and serves it through a public storefront acting as a price tracker and cross-platform comparer.
 
 ---
 

@@ -1,6 +1,6 @@
 # Environment Strategy
 
-This document outlines the environment management approach for JejakHarga.
+This document outlines the environment management approach for Pricenesia.
 
 ---
 
@@ -28,7 +28,7 @@ See `docs/10-secret-management.md` for details on setting up `.dev.vars`.
 ## Production
 
 - **Secrets**: Set via `wrangler secret put` (encrypted, never visible in dashboard)
-- **Database**: Remote D1 database (`jejakharga-db`)
+- **Database**: Remote D1 database (`pricenesia-db`)
 - **Config**: Same `wrangler.toml` `[vars]` section
 
 ### Safety Mechanisms
@@ -69,12 +69,12 @@ Estimated effort: **1-2 hours**
 
 1. Create staging D1 database:
    ```bash
-   wrangler d1 create jejakharga-db-staging
+   wrangler d1 create pricenesia-db-staging
    ```
 
 2. Create staging `wrangler.toml` for each Worker:
    ```toml
-   name = "jejakharga-api-staging"
+   name = "pricenesia-api-staging"
    # ... other config with staging database binding
    ```
 

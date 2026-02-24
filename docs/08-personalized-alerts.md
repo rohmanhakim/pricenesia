@@ -109,9 +109,9 @@ The personalization is purely a **read/filter layer** on top of data that's alre
 On the web storefront side, "user curation" can be much simpler than full accounts — just URL-based filtering:
 
 ```
-jejakharga.com/category/beauty
-jejakharga.com/category/pc-parts
-jejakharga.com/platform/shopee
+pricenesia.com/category/beauty
+pricenesia.com/category/pc-parts
+pricenesia.com/platform/shopee
 ```
 
 These are just filtered views of the same data. No login required, and users can bookmark their preferred filtered view. This keeps the storefront stateless and simple while still feeling personalized.

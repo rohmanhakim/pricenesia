@@ -1,6 +1,6 @@
 # D1 Database Bootstrap Guide
 
-This guide covers the initial setup and management of the JejakHarga D1 database.
+This guide covers the initial setup and management of the Pricenesia D1 database.
 
 ## Prerequisites
 
@@ -19,15 +19,15 @@ This guide covers the initial setup and management of the JejakHarga D1 database
 ## Step 1: Create the D1 Database
 
 ```bash
-wrangler d1 create jejakharga-db
+wrangler d1 create pricenesia-db
 ```
 
 **Save the output!** You'll see something like:
 ```
-✅ Successfully created DB 'jejakharga-db' in region APAC
+✅ Successfully created DB 'pricenesia-db' in region APAC
 [[d1_databases]]
 binding = "DB"
-database_name = "jejakharga-db"
+database_name = "pricenesia-db"
 database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 ```
 
@@ -38,12 +38,12 @@ Copy the `database_id` — you'll need it for all Worker configurations.
 ## Step 2: Apply the Initial Migration
 
 ```bash
-wrangler d1 migrations apply jejakharga-db --remote
+wrangler d1 migrations apply pricenesia-db --remote
 ```
 
 For local development, first create a local database:
 ```bash
-wrangler d1 migrations apply jejakharga-db --local
+wrangler d1 migrations apply pricenesia-db --local
 ```
 
 ---
@@ -52,12 +52,12 @@ wrangler d1 migrations apply jejakharga-db --local
 
 List all tables:
 ```bash
-wrangler d1 execute jejakharga-db --command "SELECT name FROM sqlite_master WHERE type='table';"
+wrangler d1 execute pricenesia-db --command "SELECT name FROM sqlite_master WHERE type='table';"
 ```
 
 Check table structure:
 ```bash
-wrangler d1 execute jejakharga-db --command "PRAGMA table_info(canonical_products);"
+wrangler d1 execute pricenesia-db --command "PRAGMA table_info(canonical_products);"
 ```
 
 ---
@@ -68,13 +68,13 @@ wrangler d1 execute jejakharga-db --command "PRAGMA table_info(canonical_product
 
 ```toml
 # packages/ingestion-api/wrangler.toml
-name = "jejakharga-ingestion-api"
+name = "pricenesia-ingestion-api"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "jejakharga-db"
+database_name = "pricenesia-db"
 database_id = "<YOUR_DATABASE_ID>"
 
 # Workflow binding for triggering first-scrape
@@ -91,13 +91,13 @@ class_name = "PriceRefreshWorkflow"
 
 ```toml
 # packages/scraper/wrangler.toml
-name = "jejakharga-scraper"
+name = "pricenesia-scraper"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "jejakharga-db"
+database_name = "pricenesia-db"
 database_id = "<YOUR_DATABASE_ID>"
 
 [[browser]]
@@ -121,18 +121,18 @@ crons = ["0 19 * * *"]  # 2:00 AM WIB (UTC+7)
 
 ```toml
 # packages/redirector/wrangler.toml
-name = "jejakharga-redirector"
+name = "pricenesia-redirector"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "jejakharga-db"
+database_name = "pricenesia-db"
 database_id = "<YOUR_DATABASE_ID>"
 
 # Routes for go.yourdomain.com
 # routes = [
-#   { pattern = "go.jejakharga.com/*", zone_name = "jejakharga.com" }
+#   { pattern = "go.pricenesia.com/*", zone_name = "pricenesia.com" }
 # ]
 ```
 
@@ -140,13 +140,13 @@ database_id = "<YOUR_DATABASE_ID>"
 
 ```toml
 # packages/health-monitor/wrangler.toml
-name = "jejakharga-health-monitor"
+name = "pricenesia-health-monitor"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "jejakharga-db"
+database_name = "pricenesia-db"
 database_id = "<YOUR_DATABASE_ID>"
 
 [triggers]
@@ -165,22 +165,22 @@ crons = ["30 19 * * *"]  # 2:30 AM WIB (UTC+7)
 
 ```bash
 # Remote
-wrangler d1 execute jejakharga-db --command "SELECT * FROM canonical_products LIMIT 5;"
+wrangler d1 execute pricenesia-db --command "SELECT * FROM canonical_products LIMIT 5;"
 
 # Local
-wrangler d1 execute jejakharga-db --local --command "SELECT * FROM canonical_products LIMIT 5;"
+wrangler d1 execute pricenesia-db --local --command "SELECT * FROM canonical_products LIMIT 5;"
 ```
 
 ### Execute SQL from File
 
 ```bash
-wrangler d1 execute jejakharga-db --file ./migrations/0001_initial_schema.sql
+wrangler d1 execute pricenesia-db --file ./migrations/0001_initial_schema.sql
 ```
 
 ### Create a New Migration
 
 ```bash
-wrangler d1 migration create jejakharga-db add_user_tables
+wrangler d1 migration create pricenesia-db add_user_tables
 ```
 
 This creates `migrations/0002_add_user_tables.sql` for you to edit.
@@ -188,17 +188,17 @@ This creates `migrations/0002_add_user_tables.sql` for you to edit.
 ### View Database Info
 
 ```bash
-wrangler d1 info jejakharga-db
+wrangler d1 info pricenesia-db
 ```
 
 ### Time Travel (Point-in-Time Recovery)
 
 ```bash
 # List available bookmarks
-wrangler d1 time-travel info jejakharga-db
+wrangler d1 time-travel info pricenesia-db
 
 # Restore to a specific timestamp
-wrangler d1 time-travel restore jejakharga-db --timestamp "2024-01-15T10:00:00Z"
+wrangler d1 time-travel restore pricenesia-db --timestamp "2024-01-15T10:00:00Z"
 ```
 
 ---
@@ -211,7 +211,7 @@ Wrangler automatically creates a `.wrangler/state/` directory for local D1 data 
 
 ```bash
 # Apply migrations locally
-wrangler d1 migrations apply jejakharga-db --local
+wrangler d1 migrations apply pricenesia-db --local
 
 # Run worker in dev mode with local D1
 cd packages/ingestion-api
@@ -221,7 +221,7 @@ wrangler dev --local
 ### Seed Test Data
 
 ```bash
-wrangler d1 execute jejakharga-db --local --command "
+wrangler d1 execute pricenesia-db --local --command "
 INSERT INTO canonical_products (id, name, category, model_number)
 VALUES ('test-product-001', 'Test Product', 'test-category', 'TEST-001');
 "
@@ -264,7 +264,7 @@ With ~500 listings and daily snapshots, expect ~180 rows/listing/year = ~90,000 
 1. **Automatic backups**: D1 creates automatic snapshots (view with `wrangler d1 time-travel info`)
 2. **Manual exports**: Regularly export critical data
 ```bash
-wrangler d1 export jejakharga-db --output backup-$(date +%Y%m%d).sql
+wrangler d1 export pricenesia-db --output backup-$(date +%Y%m%d).sql
    ```
 3. **Migration versioning**: All schema changes go through migration files in version control
 
@@ -276,7 +276,7 @@ wrangler d1 export jejakharga-db --output backup-$(date +%Y%m%d).sql
 
 If you see "migration already applied", you can check status:
 ```bash
-wrangler d1 migrations list jejakharga-db
+wrangler d1 migrations list pricenesia-db
 ```
 
 ### Foreign Key Constraints
@@ -291,4 +291,4 @@ await env.DB.exec('PRAGMA foreign_keys = ON;');
 Reset local database:
 ```bash
 rm -rf .wrangler/state
-wrangler d1 migrations apply jejakharga-db --local
+wrangler d1 migrations apply pricenesia-db --local
