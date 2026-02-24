@@ -110,6 +110,15 @@ cp .dev.vars.example packages/health-monitor/.dev.vars
 
 Then edit each file with the appropriate values for that Worker.
 
+### Example: Ingestion API
+
+```bash
+# packages/ingestion-api/.dev.vars
+ADMIN_API_KEY=dev-api-key-123
+```
+
+This file is automatically loaded by `wrangler dev` when running locally.
+
 ### Important: Never Commit `.dev.vars`
 
 The `.dev.vars` file is listed in `.gitignore` to prevent accidental commits:

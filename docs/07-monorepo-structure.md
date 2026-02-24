@@ -35,10 +35,17 @@ pricenesia/
 │   │
 │   ├── ingestion-api/            # Ingestion API Worker
 │   │   ├── src/
-│   │   │   └── index.ts
+│   │   │   ├── index.ts          # Entry point + Hono app
+│   │   │   ├── context.ts        # Effect Context + types
+│   │   │   ├── errors.ts         # Tagged errors
+│   │   │   ├── middleware/
+│   │   │   │   └── auth.ts       # Auth middleware
+│   │   │   └── routes/
+│   │   │       └── health.ts     # Health check route
 │   │   ├── wrangler.toml
 │   │   ├── package.json
-│   │   └── tsconfig.json
+│   │   ├── tsconfig.json
+│   │   └── .dev.vars             # Local dev secrets
 │   │
 │   ├── scraper/                  # Daily Scrape Workflow + Browser Rendering
 │   │   ├── src/
@@ -156,11 +163,28 @@ Authenticated API Worker for adding new products and listings via the Curation D
 
 **Endpoints:**
 ```
+GET  /health                → Health check (authenticated)
 POST /api/products          → Create canonical product
 POST /api/listings          → Add a new platform listing
 GET  /api/listings/:id      → Get listing details
 PATCH /api/listings/:id     → Update listing
 POST /api/listings/:id/scrape  → Trigger manual re-scrape
+```
+
+**Tech Stack:**
+- Hono — Lightweight web framework
+- Effect-TS — Functional programming with typed errors
+
+**Structure:**
+```
+src/
+├── index.ts          # Entry point + Hono app
+├── context.ts        # Effect Context + types
+├── errors.ts         # Tagged errors (UnauthorizedError, etc.)
+├── middleware/
+│   └── auth.ts       # API key authentication
+└── routes/
+    └── health.ts     # Health check endpoint
 ```
 
 **Dependencies:**

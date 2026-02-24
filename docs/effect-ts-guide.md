@@ -235,10 +235,79 @@ const result = yield* _(
 - [@effect/sql-d1 API Reference](https://effect-ts.github.io/effect/docs/sql-d1)
 - [Cloudflare D1 Documentation](https://developers.cloudflare.com/d1/)
 
+## Project Structure Reference
+
+See `packages/ingestion-api/src/` for a reference implementation:
+
+```
+src/
+├── index.ts          # Entry point + Hono app
+├── context.ts        # Context tags for dependency injection
+├── errors.ts         # Tagged errors for type-safe error handling
+├── middleware/
+│   └── auth.ts       # Auth middleware using Effect
+└── routes/
+    └── health.ts     # Route handlers using Effect
+```
+
+### context.ts
+
+Defines environment bindings and Effect Context:
+
+```typescript
+import { Context } from 'effect'
+
+export interface EnvBindings {
+  ADMIN_API_KEY: string
+  DB: D1Database
+  ENVIRONMENT: string
+}
+
+export const WorkerEnv = Context.GenericTag<EnvBindings>('WorkerEnv')
+```
+
+### errors.ts
+
+Tagged errors for type-safe error handling:
+
+```typescript
+import { Schema } from 'effect'
+
+export class UnauthorizedError extends Schema.TaggedError<UnauthorizedError>(
+  'UnauthorizedError'
+)('UnauthorizedError', { message: Schema.String }) {}
+```
+
+### middleware/auth.ts
+
+Auth middleware using Effect for validation:
+
+```typescript
+import { Effect, Layer } from 'effect'
+import { createMiddleware } from 'hono/factory'
+import { WorkerEnv } from '../context'
+import { UnauthorizedError, ForbiddenError } from '../errors'
+
+export const authMiddleware = createMiddleware<HonoBindings>(async (c, next) => {
+  const result = await Effect.runPromise(
+    validateAuth(authHeader).pipe(
+      Effect.provide(Layer.succeed(WorkerEnv, env)),
+      Effect.match({
+        onSuccess: () => ({ success: true }),
+        onFailure: (error) => ({ success: false, error }),
+      })
+    )
+  )
+  // Handle result...
+})
+```
+
+---
+
 ## Next Steps
 
 1. Run `pnpm install` in the project root
-2. Review `packages/ingestion-api/src/effect-example.ts`
+2. Review `packages/ingestion-api/src/` for reference implementation
 3. Start integrating Effect-TS patterns into your handlers
 4. Consider migrating existing code gradually using the layered architecture
 
