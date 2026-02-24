@@ -25,3 +25,41 @@ export class ForbiddenError extends Schema.TaggedError<ForbiddenError>(
 )('ForbiddenError', {
   message: Schema.String,
 }) {}
+
+// =============================================================================
+// Validation Errors
+// =============================================================================
+
+/**
+ * Error thrown when request validation fails
+ */
+export class ValidationError extends Schema.TaggedError<ValidationError>(
+  'ValidationError'
+)('ValidationError', {
+  message: Schema.String,
+  fields: Schema.optional(Schema.Array(Schema.String)),
+}) {}
+
+// =============================================================================
+// Resource Errors
+// =============================================================================
+
+/**
+ * Error thrown when a requested resource is not found
+ */
+export class NotFoundError extends Schema.TaggedError<NotFoundError>(
+  'NotFoundError'
+)('NotFoundError', {
+  message: Schema.String,
+  resource: Schema.String,
+}) {}
+
+/**
+ * Error thrown when a resource already exists (conflict)
+ */
+export class ConflictError extends Schema.TaggedError<ConflictError>(
+  'ConflictError'
+)('ConflictError', {
+  message: Schema.String,
+  resource: Schema.String,
+}) {}

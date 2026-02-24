@@ -6,6 +6,7 @@ import { Hono } from 'hono'
 import { EnvBindings, HonoBindings } from './context'
 import { authMiddleware } from './middleware/auth'
 import { healthRoutes } from './routes/health'
+import { productsRoutes } from './routes/products'
 
 // =============================================================================
 // Hono App
@@ -18,6 +19,9 @@ app.use('*', authMiddleware)
 
 // Health check endpoint
 app.route('/health', healthRoutes)
+
+// Products API endpoints
+app.route('/api/products', productsRoutes)
 
 // =============================================================================
 // Worker Export
