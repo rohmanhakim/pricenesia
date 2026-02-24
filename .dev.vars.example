@@ -1,0 +1,27 @@
+# Development Secrets Template
+# Copy this file to each Worker directory as `.dev.vars` and fill in the values
+# NEVER commit the actual `.dev.vars` file to git!
+
+# ===========================================
+# Ingestion API (packages/ingestion-api/.dev.vars)
+# ===========================================
+# ADMIN_API_KEY=your-dev-api-key-here
+
+# ===========================================
+# Health Monitor (packages/health-monitor/.dev.vars)
+# ===========================================
+# TELEGRAM_BOT_TOKEN=your-dev-bot-token-here
+# TELEGRAM_CHAT_ID=your-dev-chat-id-here
+
+# ===========================================
+# Instructions
+# ===========================================
+# 1. Copy this file to the Worker directory:
+#    cp .dev.vars.example packages/ingestion-api/.dev.vars
+#
+# 2. Uncomment and fill in the relevant secrets for that Worker
+#
+# 3. Run wrangler dev to test locally
+#
+# For production secrets, use:
+#    wrangler secret put SECRET_NAME
