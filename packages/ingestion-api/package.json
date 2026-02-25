@@ -7,7 +7,11 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "build": "tsc --noEmit"
+    "build": "tsc --noEmit",
+    "migrate": "wrangler d1 migrations apply $(grep DB_NAME .env | cut -d'=' -f2) --local",
+    "test": "hurl --test --variables-file .env tests/",
+    "test:ci": "hurl --test --variables-file .env.ci tests/",
+    "test:clean": "bash tests/reset-db.sh .env && hurl --test --variables-file .env tests/"
   },
   "dependencies": {
     "@effect/platform": "0.94.5",

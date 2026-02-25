@@ -13,6 +13,7 @@ compatibility_date = "2024-01-01"
 binding = "DB"
 database_name = "pricenesia-db"
 database_id = "f7dd5837-bcf3-4e39-b5af-99dd8fe6978f"
+migrations_dir = "../../migrations"
 
 # =============================================================================
 # Environment Variables

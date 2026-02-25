@@ -37,8 +37,59 @@ jobs:
       - name: Type check
         run: pnpm --filter @pricenesia/ingestion-api build
 
-  deploy-preview:
+  test:
     needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install hurl
+        uses: gacts/install-hurl@v1.3.2
+
+      - name: Load .env file
+        uses: aarcangeli/load-dotenv@v1.1.0
+        with:
+          path: 'packages/ingestion-api/'
+          filenames: '.env.ci'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared package
+        run: pnpm --filter @pricenesia/shared build
+
+      - name: Apply migration
+        run: cd packages/ingestion-api && pnpm exec wrangler d1 migrations apply ${{ vars.DB_NAME }} --local
+
+      - name: Start Worker in background
+        run: |
+          cd packages/ingestion-api && pnpm exec wrangler dev --var ADMIN_API_KEY:${{ secrets.ADMIN_API_KEY }} &
+          echo "Waiting for Worker to be ready..."
+          for i in {1..30}; do
+            if curl -s http://localhost:8787/health -H "Authorization: Bearer ${{ secrets.ADMIN_API_KEY }}" | grep -q '"status":"ok"'; then
+              echo "Worker is ready!"
+              break
+            fi
+            echo "Waiting... ($i/30)"
+            sleep 1
+          done
+
+      - name: Run Hurl tests
+        run: pnpm --filter @pricenesia/ingestion-api test:ci
+        env:
+          HURL_VARIABLE_api_key: ${{ secrets.ADMIN_API_KEY }}
+
+  deploy-preview:
+    needs: [build, test]
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
@@ -68,7 +119,7 @@ jobs:
           command: deploy --name pr-${{ github.event.pull_request.number }}
 
   deploy-production:
-    needs: build
+    needs: [build, test]
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     runs-on: ubuntu-latest
     environment: production

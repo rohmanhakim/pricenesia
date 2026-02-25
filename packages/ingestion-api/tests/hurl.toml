@@ -1,0 +1,21 @@
+# =============================================================================
+# Hurl Configuration for Ingestion API Tests
+# =============================================================================
+
+# Default timeout for HTTP requests (in milliseconds)
+timeout = 30000
+
+# Maximum number of redirects to follow
+max_redirect = 10
+
+# Retry configuration for flaky tests
+[retry]
+count = 3
+delay = "1s"
+
+# Default HTTP headers for all requests
+[request]
+headers = { "Content-Type" = "application/json" }
+
+# Color output
+color = true
