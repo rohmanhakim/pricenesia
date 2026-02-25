@@ -1,0 +1,109 @@
+name: Scraper Workflow
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'packages/scraper/**'
+      - 'packages/shared/**'
+      - 'packages/adapters/**'
+      - '.github/workflows/deploy-scraper.yml'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'packages/scraper/**'
+      - 'packages/shared/**'
+      - 'packages/adapters/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared package
+        run: pnpm --filter @pricenesia/shared build
+
+      - name: Build adapters package
+        run: pnpm --filter @pricenesia/adapters build
+
+      - name: Type check
+        run: pnpm --filter @pricenesia/scraper build
+
+  deploy-preview:
+    needs: build
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared package
+        run: pnpm --filter @pricenesia/shared build
+
+      - name: Build adapters package
+        run: pnpm --filter @pricenesia/adapters build
+
+      - name: Deploy preview Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: packages/scraper
+          command: deploy --name pr-${{ github.event.pull_request.number }}
+
+  deploy-production:
+    needs: build
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared package
+        run: pnpm --filter @pricenesia/shared build
+
+      - name: Build adapters package
+        run: pnpm --filter @pricenesia/adapters build
+
+      - name: Deploy to production
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: packages/scraper

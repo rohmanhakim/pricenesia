@@ -1,0 +1,26 @@
+{
+  "name": "@pricenesia/scraper",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "build": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@pricenesia/shared": "workspace:*",
+    "@pricenesia/adapters": "workspace:*",
+    "effect": "3.19.18"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "4.20260219.0",
+    "@cloudflare/puppeteer": "^0.0.15",
+    "typescript": "5.9.3",
+    "wrangler": "4.66.0",
+    "vitest": "4.0.18"
+  }
+}

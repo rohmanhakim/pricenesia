@@ -1,0 +1,34 @@
+name = "pricenesia-scraper"
+main = "src/index.ts"
+compatibility_date = "2024-12-30"
+compatibility_flags = ["nodejs_compat"]
+
+# Browser Rendering binding
+[browser]
+binding = "BROWSER"
+
+# D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "pricenesia-db"
+database_id = "f7dd5837-bcf3-4e39-b5af-99dd8fe6978f"
+
+# Workflows binding
+[[workflows]]
+name = "pricenesia-price-refresh"
+binding = "PRICE_REFRESH_WORKFLOW"
+class_name = "PriceRefreshWorkflow"
+
+# Cron triggers for daily refresh at 2:00 AM WIB (19:00 UTC)
+[triggers]
+crons = ["0 19 * * *"]
+
+# Environment variables
+[vars]
+ENVIRONMENT = "development"
+
+# Production overrides
+[env.production]
+name = "pricenesia-scraper"
+[env.production.vars]
+ENVIRONMENT = "production"
