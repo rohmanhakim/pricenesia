@@ -232,9 +232,9 @@ VALUES ('test-product-001', 'Test Product', 'test-category', 'TEST-001');
 ## Environment Variables
 
 ### Development
-Set in `.dev.vars` file in each worker directory:
+Set in `.env` file in each worker directory:
 ```bash
-# packages/ingestion-api/.dev.vars
+# packages/ingestion-api/.env
 ADMIN_API_KEY=dev-api-key-123
 ```
 

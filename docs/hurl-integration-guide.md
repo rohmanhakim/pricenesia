@@ -97,7 +97,7 @@ packages/ingestion-api/
 │   ├── products.hurl       # Products CRUD tests
 │   └── listings.hurl       # Listings CRUD tests
 ├── package.json            # Contains test scripts
-└── .dev.vars               # Local dev secrets
+└── .env                    # Local environment variables
 ```
 
 ### File Purposes

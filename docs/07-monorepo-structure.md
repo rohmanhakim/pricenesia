@@ -45,7 +45,7 @@ pricenesia/
 │   │   ├── wrangler.toml
 │   │   ├── package.json
 │   │   ├── tsconfig.json
-│   │   └── .dev.vars             # Local dev secrets
+│   │   └── .env                  # Local environment variables
 │   │
 │   ├── scraper/                  # Daily Scrape Workflow + Browser Rendering
 │   │   ├── src/

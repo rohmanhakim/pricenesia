@@ -84,28 +84,28 @@ Note: This only lists secret names, not values.
 
 ## Development Secrets
 
-### Using `.dev.vars`
+### Using `.env`
 
-For local development, create a `.dev.vars` file in each Worker directory:
+For local development, create a `.env` file in each Worker directory:
 
 ```bash
-# packages/ingestion-api/.dev.vars
+# packages/ingestion-api/.env
 ADMIN_API_KEY=dev-api-key-123
 
-# packages/health-monitor/.dev.vars
+# packages/health-monitor/.env
 TELEGRAM_BOT_TOKEN=your-dev-bot-token
 TELEGRAM_CHAT_ID=your-dev-chat-id
 ```
 
-Wrangler automatically loads `.dev.vars` when running `wrangler dev`.
+Wrangler automatically loads `.env` when running `wrangler dev`.
 
 ### Template File
 
-A `.dev.vars.example` file is provided at the project root. Copy it to each Worker directory:
+A `.env.example` file is provided at the project root. Copy it to each Worker directory:
 
 ```bash
-cp .dev.vars.example packages/ingestion-api/.dev.vars
-cp .dev.vars.example packages/health-monitor/.dev.vars
+cp .env.example packages/ingestion-api/.env
+cp .env.example packages/health-monitor/.env
 ```
 
 Then edit each file with the appropriate values for that Worker.
@@ -113,19 +113,19 @@ Then edit each file with the appropriate values for that Worker.
 ### Example: Ingestion API
 
 ```bash
-# packages/ingestion-api/.dev.vars
+# packages/ingestion-api/.env
 ADMIN_API_KEY=dev-api-key-123
 ```
 
 This file is automatically loaded by `wrangler dev` when running locally.
 
-### Important: Never Commit `.dev.vars`
+### Important: Never Commit `.env`
 
-The `.dev.vars` file is listed in `.gitignore` to prevent accidental commits:
+The `.env` file is listed in `.gitignore` to prevent accidental commits:
 
 ```gitignore
 # Secret files
-.dev.vars
+.env
 ```
 
 ---
@@ -194,14 +194,14 @@ import { PUBLIC_API_URL } from '$env/static/public'
 ### Do ✅
 
 - Use `wrangler secret put` for all production secrets
-- Use `.dev.vars` for local development (gitignored)
+- Use `.env` for local development (gitignored)
 - Rotate secrets periodically
 - Use different secrets for dev and production
 - Audit who has access to your Cloudflare account
 
 ### Don't ❌
 
-- Never commit `.dev.vars` or any secret files to git
+- Never commit `.env` or any secret files to git
 - Never hardcode secrets in source code
 - Never log secrets (`console.log(env.ADMIN_API_KEY)`)
 - Never share secrets via chat or email
@@ -234,11 +234,11 @@ If you see `undefined` or errors accessing a secret:
    wrangler secret list
    ```
 2. Check the binding name matches your code
-3. For local dev, ensure `.dev.vars` exists in the Worker directory
+3. For local dev, ensure `.env` exists in the Worker directory
 
-### `.dev.vars` Not Loading
+### `.env` Not Loading
 
-- Ensure the file is named exactly `.dev.vars` (not `.dev.vars.local`)
+- Ensure the file is named exactly `.env` (not `.env.local`)
 - Ensure it's in the same directory as `wrangler.toml`
 - Run `wrangler dev` from the Worker directory
 
@@ -257,7 +257,7 @@ If you get permission errors when setting secrets:
 | Environment | File/Method | Git Tracked? |
 |-------------|-------------|--------------|
 | Production secrets | `wrangler secret put` | No |
-| Development secrets | `.dev.vars` | No (gitignored) |
+| Development secrets | `.env` | No (gitignored) |
 | Non-secret config | `wrangler.toml` `[vars]` | Yes |
 | Frontend public vars | Cloudflare Pages dashboard | N/A |
 
@@ -265,7 +265,7 @@ If you get permission errors when setting secrets:
 
 ## Checklist for New Team Members
 
-- [ ] Copy `.dev.vars.example` to each Worker directory as `.dev.vars`
+- [ ] Copy `.env.example` to each Worker directory as `.env`
 - [ ] Fill in development secret values
 - [ ] Verify `wrangler dev` works locally
 - [ ] Request access to Cloudflare account for production secrets

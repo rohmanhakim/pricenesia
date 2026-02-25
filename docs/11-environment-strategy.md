@@ -17,11 +17,11 @@ During the MVP phase, the project uses a **two-tier environment approach**:
 
 ## Local Development
 
-- **Secrets**: `.dev.vars` file in each Worker directory (gitignored)
+- **Secrets**: `.env` file in each Worker directory (gitignored)
 - **Database**: Local D1 via `wrangler dev --local` (stored in `.wrangler/state/`)
 - **Config**: Non-sensitive settings in `wrangler.toml` `[vars]` section
 
-See `docs/10-secret-management.md` for details on setting up `.dev.vars`.
+See `docs/10-secret-management.md` for details on setting up `.env`.
 
 ---
 
