@@ -60,6 +60,7 @@ export const authMiddleware = createMiddleware<HonoBindings>(async (c, next) => 
     ADMIN_API_KEY: c.env.ADMIN_API_KEY,
     DB: c.env.DB,
     ENVIRONMENT: c.env.ENVIRONMENT,
+    SCRAPER_SERVICE: c.env.SCRAPER_SERVICE,
   }
 
   const authHeader = c.req.header('Authorization')

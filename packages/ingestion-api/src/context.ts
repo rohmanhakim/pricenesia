@@ -15,6 +15,8 @@ export interface EnvBindings {
   ADMIN_API_KEY: string
   DB: D1Database
   ENVIRONMENT: string
+  /** Service binding to scraper worker */
+  SCRAPER_SERVICE: Fetcher
 }
 
 // =============================================================================

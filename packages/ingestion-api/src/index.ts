@@ -8,6 +8,7 @@ import { authMiddleware } from './middleware/auth'
 import { healthRoutes } from './routes/health'
 import { productsRoutes } from './routes/products'
 import { listingsRoutes } from './routes/listings'
+import { scrapeRoutes } from './routes/scrape'
 
 // =============================================================================
 // Hono App
@@ -26,6 +27,9 @@ app.route('/api/products', productsRoutes)
 
 // Listings API endpoints
 app.route('/api/listings', listingsRoutes)
+
+// Scrape API endpoints
+app.route('/api/scrape', scrapeRoutes)
 
 // =============================================================================
 // Worker Export

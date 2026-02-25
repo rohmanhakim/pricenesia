@@ -25,18 +25,53 @@ export interface WorkflowParams {
 }
 
 /**
- * Result of a single workflow run.
+ * Result of a single listing scrape within a workflow.
  */
 export interface WorkflowResult {
   /** Listing ID that was scraped */
-  listing_id: number
+  listing_id: string
   /** Whether the scrape was successful */
   success: boolean
   /** Scraped data if successful */
-  data?: ScrapedData
+  data?: ScrapedData & { valid: boolean; flag_reason?: string }
   /** Error message if failed */
   error?: string
   /** Timestamp of completion */
+  completed_at?: string
+}
+
+// ============================================================================
+// Batch Workflow Types
+// ============================================================================
+
+/**
+ * Parameters for the BatchPriceRefreshWorkflow.
+ * Empty object as the workflow fetches all listings from DB.
+ */
+export interface BatchWorkflowParams {
+  /** Optional: Force re-scrape even if recently scraped */
+  force?: boolean
+  /** Optional: Filter by specific platform */
+  platform?: string
+}
+
+/**
+ * Result of a batch workflow run.
+ */
+export interface BatchWorkflowResult {
+  /** Whether all scrapes were successful */
+  success: boolean
+  /** Total number of listings processed */
+  total_listings: number
+  /** Number of successful scrapes */
+  success_count: number
+  /** Number of failed scrapes */
+  failure_count: number
+  /** Individual results per listing */
+  results: WorkflowResult[]
+  /** Timestamp when workflow started */
+  started_at: string
+  /** Timestamp when workflow completed */
   completed_at: string
 }
 
@@ -121,8 +156,10 @@ export interface Env {
   DB: D1Database
   /** Browser Rendering binding */
   BROWSER: Fetcher
-  /** Workflow binding for self-triggering */
+  /** Single listing workflow binding */
   PRICE_REFRESH_WORKFLOW: Workflow
+  /** Batch workflow binding for all listings */
+  BATCH_PRICE_REFRESH_WORKFLOW: Workflow
   /** Environment name */
   ENVIRONMENT: 'development' | 'production'
 }

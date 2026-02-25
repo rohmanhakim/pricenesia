@@ -13,11 +13,17 @@ binding = "DB"
 database_name = "pricenesia-db"
 database_id = "f7dd5837-bcf3-4e39-b5af-99dd8fe6978f"
 
-# Workflows binding
+# Workflows binding for single listing refresh
 [[workflows]]
 name = "pricenesia-price-refresh"
 binding = "PRICE_REFRESH_WORKFLOW"
 class_name = "PriceRefreshWorkflow"
+
+# Workflows binding for batch refresh (all listings)
+[[workflows]]
+name = "pricenesia-batch-price-refresh"
+binding = "BATCH_PRICE_REFRESH_WORKFLOW"
+class_name = "BatchPriceRefreshWorkflow"
 
 # Cron triggers for daily refresh at 2:00 AM WIB (19:00 UTC)
 [triggers]
@@ -26,9 +32,3 @@ crons = ["0 19 * * *"]
 # Environment variables
 [vars]
 ENVIRONMENT = "development"
-
-# Production overrides
-[env.production]
-name = "pricenesia-scraper"
-[env.production.vars]
-ENVIRONMENT = "production"

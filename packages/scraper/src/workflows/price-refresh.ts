@@ -67,7 +67,7 @@ export class PriceRefreshWorkflow extends WorkflowEntrypoint<Env, WorkflowParams
     // Handle extraction failure
     if (!extracted.success) {
       return {
-        listing_id,
+        listing_id: String(listing_id),
         success: false,
         error: extracted.error,
         completed_at: new Date().toISOString(),
@@ -113,7 +113,7 @@ export class PriceRefreshWorkflow extends WorkflowEntrypoint<Env, WorkflowParams
     })
     
     return {
-      listing_id,
+      listing_id: String(listing_id),
       success: true,
       data: {
         ...extracted.data,
