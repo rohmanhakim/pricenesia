@@ -44,17 +44,17 @@ Effect-TS promotes a layered architecture:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     HTTP Handlers                            │
-│  (Route handling, request parsing, response formatting)      │
+│                     HTTP Handlers                           │
+│  (Route handling, request parsing, response formatting)     │
 ├─────────────────────────────────────────────────────────────┤
-│                     Service Layer                            │
-│  (Business logic, validation, error handling)                │
+│                     Service Layer                           │
+│  (Business logic, validation, error handling)               │
 ├─────────────────────────────────────────────────────────────┤
-│                   Repository Layer                           │
-│  (Database operations, data access)                          │
+│                   Repository Layer                          │
+│  (Database operations, data access)                         │
 ├─────────────────────────────────────────────────────────────┤
-│                   Infrastructure Layer                       │
-│  (D1 database, external services, configuration)             │
+│                   Infrastructure Layer                      │
+│  (D1 database, external services, configuration)            │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -311,6 +311,214 @@ export const authMiddleware = createMiddleware<HonoBindings>(async (c, next) => 
 3. Start integrating Effect-TS patterns into your handlers
 4. Consider migrating existing code gradually using the layered architecture
 
+## Platform Adapters with Effect
+
+The `@pricenesia/adapters` package uses Effect for platform-specific scraping adapters. This provides type-safe error handling and composable extraction logic.
+
+### Adapter Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Platform Adapter                         │
+│  (extract method returns Effect<ScrapedData, Error>)        │
+├─────────────────────────────────────────────────────────────┤
+│                    Extraction Logic                         │
+│  (Effect.gen for composable operations)                     │
+├─────────────────────────────────────────────────────────────┤
+│                    Error Types                              │
+│  (ScrapeError, ParseError, ValidationError)                 │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Tagged Errors
+
+Each adapter can fail with typed errors:
+
+```typescript
+import { Schema } from 'effect'
+
+// Page loading/timeout errors
+export class ScrapeError extends Schema.TaggedError<ScrapeError>('ScrapeError')(
+  'ScrapeError',
+  {
+    reason: Schema.Literal('page_not_found', 'blocked', 'timeout', 'network_error'),
+    message: Schema.String,
+    raw_debug: Schema.optional(Schema.String),
+  }
+) {}
+
+// Data parsing errors
+export class ParseError extends Schema.TaggedError<ParseError>('ParseError')(
+  'ParseError',
+  {
+    reason: Schema.Literal('json_parse_failed', 'dom_selector_failed', 'price_extraction_failed', 'invalid_data'),
+    message: Schema.String,
+    raw_debug: Schema.optional(Schema.String),
+  }
+) {}
+
+// Data validation errors
+export class ValidationError extends Schema.TaggedError<ValidationError>('ValidationError')(
+  'ValidationError',
+  {
+    reason: Schema.Literal('zero_price', 'price_below_floor', 'change_too_large'),
+    message: Schema.String,
+    scraped_price: Schema.optional(Schema.Number),
+    last_known_price: Schema.optional(Schema.Number),
+  }
+) {}
+```
+
+### Creating a Platform Adapter
+
+```typescript
+import { Effect } from 'effect'
+import type { PlatformAdapter, ScrapedData, PuppeteerPage } from '@pricenesia/adapters'
+import { ParseError, ValidationError } from '@pricenesia/adapters'
+
+export const MyPlatformAdapter: PlatformAdapter = {
+  name: 'myplatform',
+
+  extract(page: unknown, _listing: Listing): Effect.Effect<ScrapedData, ParseError | ValidationError> {
+    const puppeteerPage = page as PuppeteerPage
+
+    return Effect.gen(function* (_) {
+      // Use Effect.tryPromise for async page operations
+      const data = yield* _(
+        Effect.tryPromise({
+          try: () => puppeteerPage.evaluate(() => {
+            // Extract data from page
+            return { price: 100000, seller: 'Seller Name' }
+          }),
+          catch: (error) => new ParseError({
+            reason: 'json_parse_failed',
+            message: 'Failed to extract data',
+            raw_debug: String(error),
+          }),
+        })
+      )
+
+      // Validate and return
+      if (!data.price || data.price <= 0) {
+        return {
+          price: null,
+          original_price: null,
+          stock_status: null,
+          seller_name: data.seller,
+          valid: false,
+          flag_reason: 'zero_price',
+        }
+      }
+
+      return {
+        price: data.price,
+        original_price: null,
+        stock_status: 'available',
+        seller_name: data.seller,
+        valid: true,
+      }
+    })
+  },
+}
+```
+
+### Using Adapters
+
+```typescript
+import { Effect, Match } from 'effect'
+import { getAdapter, runExtraction, runExtractionSafe } from '@pricenesia/adapters'
+
+// Option 1: Get adapter and use Effect directly
+const adapter = getAdapter('tokopedia')
+const result = await Effect.runPromise(
+  adapter.extract(page, listing).pipe(
+    Effect.match({
+      onSuccess: (data) => ({ ok: true, data }),
+      onFailure: (error) => ({ ok: false, error }),
+    })
+  )
+)
+
+// Option 2: Use the helper function for Promise-based code
+const data = await runExtraction('tokopedia', page)
+
+// Option 3: Use safe execution with result object
+const result = await runExtractionSafe('tokopedia', page)
+if (result.success) {
+  console.log('Price:', result.data.price)
+} else {
+  console.log('Error:', result.error.message)
+}
+
+// Option 4: Pattern match on error types
+const result = await Effect.runPromise(
+  adapter.extract(page, listing).pipe(
+    Effect.match({
+      onSuccess: (data) => ({ status: 'success', data }),
+      onFailure: (error) =>
+        Match.value(error).pipe(
+          Match.tag('ScrapeError', (e) => ({ status: 'scrape_failed', reason: e.reason })),
+          Match.tag('ParseError', (e) => ({ status: 'parse_failed', reason: e.reason })),
+          Match.tag('ValidationError', (e) => ({ status: 'validation_failed', reason: e.reason })),
+          Match.orElse(() => ({ status: 'unknown_error' })),
+        ),
+    })
+  )
+)
+```
+
+### Error Handling Patterns
+
+```typescript
+import { Effect, Match } from 'effect'
+
+// Retry on transient failures
+const result = await Effect.runPromise(
+  adapter.extract(page, listing).pipe(
+    Effect.retry({
+      times: 3,
+      delay: Duration.seconds(2),
+    }),
+    Effect.timeout(Duration.seconds(30)),
+    Effect.catchAll((error) => 
+      Effect.succeed({
+        price: null,
+        valid: false,
+        flag_reason: 'scrape_failed',
+        raw_debug: error.message,
+      })
+    )
+  )
+)
+```
+
+### Testing Adapters
+
+```typescript
+import { Effect, Layer } from 'effect'
+import { PageContext, TokopediaAdapter } from '@pricenesia/adapters'
+
+// Create a mock page
+const mockPage = {
+  evaluate: async (fn: () => unknown) => ({
+    props: { pageProps: { layoutData: { pdpGetLayout: { basicInfo: { price: 500000 } } } } }
+  }),
+  $eval: async () => null,
+  waitForSelector: async () => {},
+  url: () => 'https://tokopedia.com/test',
+}
+
+// Test extraction
+const result = await Effect.runPromise(
+  TokopediaAdapter.extract(mockPage, listing)
+)
+
+expect(result.valid).toBe(true)
+expect(result.price).toBe(500000)
+```
+
+---
+
 ## Benefits for Pricenesia
 
 - **Type Safety**: Catch errors at compile time
@@ -318,3 +526,4 @@ export const authMiddleware = createMiddleware<HonoBindings>(async (c, next) => 
 - **Maintainability**: Clear separation of concerns
 - **Error Handling**: Comprehensive error types and recovery
 - **Concurrency**: Built-in patterns for parallel operations (useful for scraping)
+- **Composability**: Chain adapter operations with Effect.gen

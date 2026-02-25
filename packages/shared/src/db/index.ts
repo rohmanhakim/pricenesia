@@ -2,7 +2,16 @@
 // Pricenesia Shared Database Utilities
 // =============================================================================
 
-import type { Product, Listing, ListingListFilters, UpdateListingRequest } from '../types'
+import type { 
+  Product, 
+  Listing, 
+  ListingListFilters, 
+  UpdateListingRequest,
+  PriceSnapshot,
+  FlaggedSnapshot,
+  InsertPriceSnapshotData,
+  InsertFlaggedSnapshotData,
+} from '../types'
 
 export const DB_SCHEMA_VERSION = 1
 
@@ -356,4 +365,179 @@ export async function deleteListing(
     .run()
 
   return result.meta.changes > 0
+}
+
+// -----------------------------------------------------------------------------
+// Price Snapshots
+// -----------------------------------------------------------------------------
+
+/**
+ * Insert a new price snapshot
+ * Append-only: never update or delete
+ */
+export async function insertPriceSnapshot(
+  db: D1Database,
+  data: InsertPriceSnapshotData
+): Promise<void> {
+  await db
+    .prepare(
+      `INSERT INTO price_snapshots 
+        (id, listing_id, price, original_price, discount_pct, stock_status, seller_name)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(
+      data.id,
+      data.listing_id,
+      data.price,
+      data.original_price ?? null,
+      data.discount_pct ?? null,
+      data.stock_status ?? null,
+      data.seller_name ?? null
+    )
+    .run()
+}
+
+/**
+ * Find the latest price snapshot for a listing
+ */
+export async function findLatestPriceForListing(
+  db: D1Database,
+  listingId: string
+): Promise<PriceSnapshot | null> {
+  return await db
+    .prepare(
+      `SELECT * FROM price_snapshots 
+       WHERE listing_id = ? 
+       ORDER BY scraped_at DESC 
+       LIMIT 1`
+    )
+    .bind(listingId)
+    .first<PriceSnapshot>()
+}
+
+/**
+ * Find all price snapshots for a listing (for price history)
+ */
+export async function findPriceHistoryForListing(
+  db: D1Database,
+  listingId: string,
+  limit = 30
+): Promise<PriceSnapshot[]> {
+  const result = await db
+    .prepare(
+      `SELECT * FROM price_snapshots 
+       WHERE listing_id = ? 
+       ORDER BY scraped_at ASC 
+       LIMIT ?`
+    )
+    .bind(listingId, limit)
+    .all<PriceSnapshot>()
+
+  return result.results
+}
+
+// -----------------------------------------------------------------------------
+// Flagged Snapshots
+// -----------------------------------------------------------------------------
+
+/**
+ * Insert a flagged snapshot (failed sanity check)
+ */
+export async function insertFlaggedSnapshot(
+  db: D1Database,
+  data: InsertFlaggedSnapshotData
+): Promise<void> {
+  await db
+    .prepare(
+      `INSERT INTO flagged_snapshots 
+        (id, listing_id, scraped_price, last_known_price, change_ratio, flag_reason, raw_html)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(
+      data.id,
+      data.listing_id,
+      data.scraped_price ?? null,
+      data.last_known_price ?? null,
+      data.change_ratio ?? null,
+      data.flag_reason,
+      data.raw_html ?? null
+    )
+    .run()
+}
+
+/**
+ * Find unreviewed flagged snapshots
+ */
+export async function findUnreviewedFlaggedSnapshots(
+  db: D1Database,
+  limit = 50
+): Promise<FlaggedSnapshot[]> {
+  const result = await db
+    .prepare(
+      `SELECT * FROM flagged_snapshots 
+       WHERE reviewed = 0 
+       ORDER BY scraped_at DESC 
+       LIMIT ?`
+    )
+    .bind(limit)
+    .all<FlaggedSnapshot>()
+
+  return result.results
+}
+
+/**
+ * Mark a flagged snapshot as reviewed
+ */
+export async function markFlaggedSnapshotReviewed(
+  db: D1Database,
+  id: string
+): Promise<boolean> {
+  const result = await db
+    .prepare(
+      `UPDATE flagged_snapshots SET reviewed = 1 WHERE id = ?`
+    )
+    .bind(id)
+    .run()
+
+  return result.meta.changes > 0
+}
+
+// -----------------------------------------------------------------------------
+// Scrape Status Updates
+// -----------------------------------------------------------------------------
+
+/**
+ * Update the last_scraped_at timestamp for a listing
+ */
+export async function updateListingScrapedAt(
+  db: D1Database,
+  id: string
+): Promise<void> {
+  await db
+    .prepare(
+      `UPDATE platform_listings SET last_scraped_at = datetime('now') WHERE id = ?`
+    )
+    .bind(id)
+    .run()
+}
+
+/**
+ * Find all listings due for scraping (active, pinned, with product info)
+ */
+export async function findListingsForScrape(
+  db: D1Database
+): Promise<(Listing & { model_number: string | null; product_name: string | null })[]> {
+  const result = await db
+    .prepare(
+      `SELECT pl.*, cp.model_number, cp.name as product_name
+       FROM platform_listings pl
+       JOIN canonical_products cp ON cp.id = pl.canonical_product_id
+       WHERE pl.is_active = 1 
+         AND pl.is_pinned_seller = 1 
+         AND cp.is_active = 1
+       ORDER BY pl.platform, pl.last_scraped_at ASC NULLS FIRST`
+    )
+    .all<Listing & { model_number: string | null; product_name: string | null }>()
+
+  return result.results
 }

@@ -81,7 +81,7 @@ export type SellerTier = 'official_store' | 'mall' | 'verified' | 'regular'
 
 export type ListingCondition = 'new' | 'used'
 
-export type StockStatus = 'available' | 'limited' | 'out_of_stock'
+export type StockStatus = 'available' | 'limited' | 'out_of_stock' | null
 
 export interface Listing {
   id: string
@@ -149,4 +149,51 @@ export interface UpdateListingRequest {
   is_active?: boolean
   is_pinned_seller?: boolean
   condition?: ListingCondition
+}
+
+// -----------------------------------------------------------------------------
+// Price Snapshot Types
+// -----------------------------------------------------------------------------
+
+export interface PriceSnapshot {
+  id: string
+  listing_id: string
+  price: number
+  original_price: number | null
+  discount_pct: number | null
+  stock_status: StockStatus
+  seller_name: string | null
+  scraped_at: string
+}
+
+export interface FlaggedSnapshot {
+  id: string
+  listing_id: string
+  scraped_price: number | null
+  last_known_price: number | null
+  change_ratio: number | null
+  flag_reason: string | null
+  raw_html: string | null
+  scraped_at: string
+  reviewed: number
+}
+
+export interface InsertPriceSnapshotData {
+  id: string
+  listing_id: string
+  price: number
+  original_price?: number
+  discount_pct?: number
+  stock_status?: StockStatus
+  seller_name?: string
+}
+
+export interface InsertFlaggedSnapshotData {
+  id: string
+  listing_id: string
+  scraped_price: number | null
+  last_known_price: number | null
+  change_ratio: number | null
+  flag_reason: string
+  raw_html?: string
 }
