@@ -9,6 +9,7 @@ import { healthRoutes } from './routes/health'
 import { productsRoutes } from './routes/products'
 import { listingsRoutes } from './routes/listings'
 import { scrapeRoutes } from './routes/scrape'
+import { snapshotsRoutes } from './routes/snapshots'
 
 // =============================================================================
 // Hono App
@@ -30,6 +31,9 @@ app.route('/api/listings', listingsRoutes)
 
 // Scrape API endpoints
 app.route('/api/scrape', scrapeRoutes)
+
+// Snapshots API endpoints
+app.route('/api/snapshots', snapshotsRoutes)
 
 // =============================================================================
 // Worker Export

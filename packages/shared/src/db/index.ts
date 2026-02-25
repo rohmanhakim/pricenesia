@@ -11,6 +11,7 @@ import type {
   FlaggedSnapshot,
   InsertPriceSnapshotData,
   InsertFlaggedSnapshotData,
+  StockStatus,
 } from '../types'
 
 export const DB_SCHEMA_VERSION = 1
@@ -500,6 +501,332 @@ export async function markFlaggedSnapshotReviewed(
     .run()
 
   return result.meta.changes > 0
+}
+
+// -----------------------------------------------------------------------------
+// Price Snapshots - Extended Queries
+// -----------------------------------------------------------------------------
+
+/**
+ * Find all price snapshots with optional filtering
+ */
+export async function findAllPriceSnapshots(
+  db: D1Database,
+  options?: {
+    platform?: string
+    from?: string
+    to?: string
+    limit?: number
+    offset?: number
+  }
+): Promise<(PriceSnapshot & { 
+  listing?: {
+    platform: string
+    canonical_product_id: string
+    product_name: string | null
+  } 
+})[]> {
+  const conditions: string[] = []
+  const values: (string | number)[] = []
+  
+  if (options?.platform) {
+    conditions.push('pl.platform = ?')
+    values.push(options.platform)
+  }
+  
+  if (options?.from) {
+    conditions.push('ps.scraped_at >= ?')
+    values.push(options.from)
+  }
+  
+  if (options?.to) {
+    conditions.push('ps.scraped_at <= ?')
+    values.push(options.to)
+  }
+  
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+  const limit = options?.limit ?? 30
+  const offset = options?.offset ?? 0
+  
+  values.push(limit, offset)
+  
+  const sql = `
+    SELECT ps.*, 
+           pl.platform, 
+           pl.canonical_product_id,
+           cp.name as product_name
+    FROM price_snapshots ps
+    JOIN platform_listings pl ON pl.id = ps.listing_id
+    JOIN canonical_products cp ON cp.id = pl.canonical_product_id
+    ${whereClause}
+    ORDER BY ps.scraped_at DESC
+    LIMIT ? OFFSET ?
+  `
+  
+  const result = await db
+    .prepare(sql)
+    .bind(...values)
+    .all()
+  
+  return result.results.map((row: Record<string, unknown>) => ({
+    id: row.id as string,
+    listing_id: row.listing_id as string,
+    price: row.price as number,
+    original_price: row.original_price as number | null,
+    discount_pct: row.discount_pct as number | null,
+    stock_status: (row.stock_status ?? null) as StockStatus,
+    seller_name: row.seller_name as string | null,
+    scraped_at: row.scraped_at as string,
+    listing: {
+      platform: row.platform as string,
+      canonical_product_id: row.canonical_product_id as string,
+      product_name: row.product_name as string | null,
+    },
+  }))
+}
+
+/**
+ * Count all price snapshots with optional filtering
+ */
+export async function countAllPriceSnapshots(
+  db: D1Database,
+  options?: {
+    platform?: string
+    from?: string
+    to?: string
+  }
+): Promise<number> {
+  const conditions: string[] = []
+  const values: (string | number)[] = []
+  
+  if (options?.platform) {
+    conditions.push('pl.platform = ?')
+    values.push(options.platform)
+  }
+  
+  if (options?.from) {
+    conditions.push('ps.scraped_at >= ?')
+    values.push(options.from)
+  }
+  
+  if (options?.to) {
+    conditions.push('ps.scraped_at <= ?')
+    values.push(options.to)
+  }
+  
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+  
+  const sql = `
+    SELECT COUNT(*) as count
+    FROM price_snapshots ps
+    JOIN platform_listings pl ON pl.id = ps.listing_id
+    ${whereClause}
+  `
+  
+  const result = await db
+    .prepare(sql)
+    .bind(...values)
+    .first<{ count: number }>()
+  
+  return result?.count ?? 0
+}
+
+/**
+ * Find flagged snapshots with listing and product details
+ */
+export async function findFlaggedSnapshotsWithDetails(
+  db: D1Database,
+  options?: {
+    platform?: string
+    limit?: number
+    offset?: number
+  }
+): Promise<(FlaggedSnapshot & {
+  listing: {
+    platform: string
+    seller_name: string
+    canonical_product_id: string
+    product_name: string | null
+    raw_url: string
+  }
+})[]> {
+  const conditions: string[] = ['fs.reviewed = 0']
+  const values: (string | number)[] = []
+  
+  if (options?.platform) {
+    conditions.push('pl.platform = ?')
+    values.push(options.platform)
+  }
+  
+  const whereClause = `WHERE ${conditions.join(' AND ')}`
+  const limit = options?.limit ?? 50
+  const offset = options?.offset ?? 0
+  
+  values.push(limit, offset)
+  
+  const sql = `
+    SELECT fs.*, 
+           pl.platform, 
+           pl.seller_name,
+           pl.canonical_product_id,
+           pl.raw_url,
+           cp.name as product_name
+    FROM flagged_snapshots fs
+    JOIN platform_listings pl ON pl.id = fs.listing_id
+    JOIN canonical_products cp ON cp.id = pl.canonical_product_id
+    ${whereClause}
+    ORDER BY fs.scraped_at DESC
+    LIMIT ? OFFSET ?
+  `
+  
+  const result = await db
+    .prepare(sql)
+    .bind(...values)
+    .all()
+  
+  return result.results.map((row: Record<string, unknown>) => ({
+    id: row.id as string,
+    listing_id: row.listing_id as string,
+    scraped_price: row.scraped_price as number | null,
+    last_known_price: row.last_known_price as number | null,
+    change_ratio: row.change_ratio as number | null,
+    flag_reason: row.flag_reason as string | null,
+    raw_html: row.raw_html as string | null,
+    scraped_at: row.scraped_at as string,
+    reviewed: row.reviewed as number,
+    listing: {
+      platform: row.platform as string,
+      seller_name: row.seller_name as string,
+      canonical_product_id: row.canonical_product_id as string,
+      product_name: row.product_name as string | null,
+      raw_url: row.raw_url as string,
+    },
+  }))
+}
+
+/**
+ * Count flagged snapshots with optional filtering
+ */
+export async function countFlaggedSnapshots(
+  db: D1Database,
+  options?: {
+    platform?: string
+  }
+): Promise<number> {
+  const conditions: string[] = ['reviewed = 0']
+  const values: (string | number)[] = []
+  
+  if (options?.platform) {
+    conditions.push('listing_id IN (SELECT id FROM platform_listings WHERE platform = ?)')
+    values.push(options.platform)
+  }
+  
+  const whereClause = `WHERE ${conditions.join(' AND ')}`
+  
+  const sql = `SELECT COUNT(*) as count FROM flagged_snapshots ${whereClause}`
+  
+  const result = await db
+    .prepare(sql)
+    .bind(...values)
+    .first<{ count: number }>()
+  
+  return result?.count ?? 0
+}
+
+/**
+ * Find a flagged snapshot by ID
+ */
+export async function findFlaggedSnapshotById(
+  db: D1Database,
+  id: string
+): Promise<FlaggedSnapshot | null> {
+  return await db
+    .prepare(`SELECT * FROM flagged_snapshots WHERE id = ?`)
+    .bind(id)
+    .first<FlaggedSnapshot>()
+}
+
+/**
+ * Count price history for a listing with optional date filtering
+ */
+export async function countPriceHistoryForListing(
+  db: D1Database,
+  listingId: string,
+  options?: {
+    from?: string
+    to?: string
+  }
+): Promise<number> {
+  const conditions: string[] = ['listing_id = ?']
+  const values: (string)[] = [listingId]
+  
+  if (options?.from) {
+    conditions.push('scraped_at >= ?')
+    values.push(options.from)
+  }
+  
+  if (options?.to) {
+    conditions.push('scraped_at <= ?')
+    values.push(options.to)
+  }
+  
+  const whereClause = `WHERE ${conditions.join(' AND ')}`
+  
+  const sql = `SELECT COUNT(*) as count FROM price_snapshots ${whereClause}`
+  
+  const result = await db
+    .prepare(sql)
+    .bind(...values)
+    .first<{ count: number }>()
+  
+  return result?.count ?? 0
+}
+
+/**
+ * Find price history for a listing with pagination and date filtering
+ */
+export async function findPriceHistoryForListingPaginated(
+  db: D1Database,
+  listingId: string,
+  options?: {
+    from?: string
+    to?: string
+    limit?: number
+    offset?: number
+  }
+): Promise<PriceSnapshot[]> {
+  const conditions: string[] = ['listing_id = ?']
+  const values: (string | number)[] = [listingId]
+  
+  if (options?.from) {
+    conditions.push('scraped_at >= ?')
+    values.push(options.from)
+  }
+  
+  if (options?.to) {
+    conditions.push('scraped_at <= ?')
+    values.push(options.to)
+  }
+  
+  const whereClause = `WHERE ${conditions.join(' AND ')}`
+  const limit = options?.limit ?? 30
+  const offset = options?.offset ?? 0
+  
+  values.push(limit, offset)
+  
+  const sql = `
+    SELECT * FROM price_snapshots 
+    ${whereClause}
+    ORDER BY scraped_at DESC
+    LIMIT ? OFFSET ?
+  `
+  
+  const result = await db
+    .prepare(sql)
+    .bind(...values)
+    .all<PriceSnapshot>()
+  
+  return result.results
 }
 
 // -----------------------------------------------------------------------------
