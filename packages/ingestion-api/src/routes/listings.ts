@@ -11,12 +11,15 @@ import {
   findListingById,
   findAllListings,
   canonicalProductExists,
+  updateListing,
+  deleteListing,
 } from '@pricenesia/shared/db'
 import type {
   AddListingRequest,
   AddListingResponse,
   ListingListResponse,
   ListingListFilters,
+  UpdateListingRequest,
   Platform,
   SellerTier,
   ListingCondition,
@@ -69,6 +72,18 @@ const ListListingsQuerySchema = Schema.Struct({
   canonical_product_id: Schema.optional(Schema.String),
   platform: Schema.optional(PlatformSchema),
   is_active: Schema.optional(Schema.Boolean),
+  condition: Schema.optional(ConditionSchema),
+})
+
+const UpdateListingSchema = Schema.Struct({
+  seller_name: Schema.optional(
+    Schema.String.pipe(Schema.nonEmptyString(), Schema.minLength(1), Schema.maxLength(255))
+  ),
+  seller_tier: Schema.optional(SellerTierSchema),
+  raw_url: Schema.optional(Schema.String.pipe(Schema.maxLength(2000))),
+  referral_url: Schema.optional(Schema.String.pipe(Schema.maxLength(2000))),
+  is_active: Schema.optional(Schema.Boolean),
+  is_pinned_seller: Schema.optional(Schema.Boolean),
   condition: Schema.optional(ConditionSchema),
 })
 
@@ -310,6 +325,99 @@ const getListingHandler = (id: string) =>
     }
   })
 
+/**
+ * Handler for PATCH /api/listings/:id
+ * Partially updates a listing
+ */
+const updateListingHandler = (id: string, body: unknown) =>
+  Effect.gen(function* (_) {
+    const env = yield* _(WorkerEnv)
+
+    // 1. Validate request body
+    const validated = yield* _(
+      Schema.decodeUnknown(UpdateListingSchema)(body).pipe(
+        Effect.mapError(
+          (e) =>
+            new ValidationError({
+              message: 'Invalid request body',
+              fields: Object.keys(e.issue),
+            })
+        )
+      )
+    )
+
+    const updateData = validated as UpdateListingRequest
+
+    // 2. Check if at least one field is provided
+    if (Object.keys(updateData).length === 0) {
+      yield* _(
+        Effect.fail(
+          new ValidationError({
+            message: 'At least one field must be provided for update',
+          })
+        )
+      )
+    }
+
+    // 3. Check if listing exists
+    const existing = yield* _(
+      Effect.tryPromise(() => findListingById(env.DB, id)).pipe(
+        Effect.flatMap((result) =>
+          result === null
+            ? Effect.fail(
+                new NotFoundError({
+                  message: `Listing with id '${id}' not found`,
+                  resource: 'platform_listing',
+                })
+              )
+            : Effect.succeed(result)
+        )
+      )
+    )
+
+    // 4. Update listing
+    const updated = yield* _(
+      Effect.tryPromise(() => updateListing(env.DB, id, updateData))
+    )
+
+    return {
+      ...updated,
+      platform: updated!.platform as Platform,
+      seller_tier: updated!.seller_tier as SellerTier | null,
+      condition: updated!.condition as ListingCondition,
+    }
+  })
+
+/**
+ * Handler for DELETE /api/listings/:id
+ * Soft deletes a listing (sets is_active = 0)
+ */
+const deleteListingHandler = (id: string) =>
+  Effect.gen(function* (_) {
+    const env = yield* _(WorkerEnv)
+
+    // Check if listing exists first
+    const existing = yield* _(
+      Effect.tryPromise(() => findListingById(env.DB, id)).pipe(
+        Effect.flatMap((result) =>
+          result === null
+            ? Effect.fail(
+                new NotFoundError({
+                  message: `Listing with id '${id}' not found`,
+                  resource: 'platform_listing',
+                })
+              )
+            : Effect.succeed(result)
+        )
+      )
+    )
+
+    // Soft delete
+    yield* _(Effect.tryPromise(() => deleteListing(env.DB, id)))
+
+    return { deleted: true }
+  })
+
 // =============================================================================
 // Routes
 // =============================================================================
@@ -411,6 +519,68 @@ listingsRoutes.get('/:id', async (c) => {
   }
 
   return c.json(result.data)
+})
+
+// PATCH /api/listings/:id - Update listing (partial update)
+listingsRoutes.patch('/:id', async (c) => {
+  const env = c.get('env')
+  const id = c.req.param('id')
+  const body = await c.req.json().catch(() => ({}))
+
+  const result = await Effect.runPromise(
+    updateListingHandler(id, body).pipe(
+      Effect.provide(Layer.succeed(WorkerEnv, env)),
+      Effect.match({
+        onSuccess: (data) => ({ success: true, data } as const),
+        onFailure: (error) => ({ success: false, error } as const),
+      })
+    )
+  )
+
+  if (!result.success) {
+    const { error } = result
+    switch (error._tag) {
+      case 'ValidationError':
+        return c.json(
+          { error: 'Validation Error', message: error.message, fields: error.fields },
+          400
+        )
+      case 'NotFoundError':
+        return c.json({ error: 'Not Found', message: error.message }, 404)
+      default:
+        return c.json({ error: 'Internal Server Error', message: 'An unexpected error occurred' }, 500)
+    }
+  }
+
+  return c.json(result.data)
+})
+
+// DELETE /api/listings/:id - Soft delete listing
+listingsRoutes.delete('/:id', async (c) => {
+  const env = c.get('env')
+  const id = c.req.param('id')
+
+  const result = await Effect.runPromise(
+    deleteListingHandler(id).pipe(
+      Effect.provide(Layer.succeed(WorkerEnv, env)),
+      Effect.match({
+        onSuccess: () => ({ success: true } as const),
+        onFailure: (error) => ({ success: false, error } as const),
+      })
+    )
+  )
+
+  if (!result.success) {
+    const { error } = result
+    switch (error._tag) {
+      case 'NotFoundError':
+        return c.json({ error: 'Not Found', message: error.message }, 404)
+      default:
+        return c.json({ error: 'Internal Server Error', message: 'An unexpected error occurred' }, 500)
+    }
+  }
+
+  return c.body(null, 204)
 })
 
 export { listingsRoutes }
