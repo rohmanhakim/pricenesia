@@ -115,10 +115,14 @@ function extractApolloCache(page: PuppeteerPage): Effect.Effect<TokopediaApolloC
  * Find the price object in the Apollo cache.
  * Keys look like: "$ROOT_QUERY.pdpMainInfo({...}).components.3.data.0.price"
  * We scan by suffix since the product slug is embedded in the key.
+ *
+ * Note: The component index (e.g., .3.) is not guaranteed to be stable.
+ * Tokopedia may change the layout, shifting the price component to a different index.
+ * Using regex to match any component index makes this more robust.
  */
 function findPriceObject(cache: TokopediaApolloCache): TokopediaPriceObject | null {
   const priceKey = Object.keys(cache).find(
-    (k) => k.startsWith('$ROOT_QUERY.pdpMainInfo') && k.endsWith('.components.3.data.0.price')
+    (k) => k.startsWith('$ROOT_QUERY.pdpMainInfo') && /\.components\.\d+\.data\.0\.price$/.test(k)
   )
 
   if (!priceKey) return null
@@ -134,10 +138,13 @@ function findPriceObject(cache: TokopediaApolloCache): TokopediaPriceObject | nu
 /**
  * Find the stock object in the Apollo cache.
  * Uses the same key pattern as price, just different suffix.
+ *
+ * Note: Like findPriceObject, we use regex to match any component index
+ * for robustness against layout changes.
  */
 function findStockObject(cache: TokopediaApolloCache): TokopediaStockObject | null {
   const stockKey = Object.keys(cache).find(
-    (k) => k.startsWith('$ROOT_QUERY.pdpMainInfo') && k.endsWith('.components.3.data.0.stock')
+    (k) => k.startsWith('$ROOT_QUERY.pdpMainInfo') && /\.components\.\d+\.data\.0\.stock$/.test(k)
   )
 
   if (!stockKey) return null

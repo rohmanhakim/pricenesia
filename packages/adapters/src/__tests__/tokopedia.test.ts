@@ -51,12 +51,65 @@ describe('Tokopedia Apollo Cache Extraction', () => {
     expect(typeof cache).toBe('object')
   })
 
-  it('should find price object in cache', () => {
+  it('should match price key with any component index using regex', () => {
+    // Test that the regex pattern matches different component indices
+    const testKeys = [
+      '$ROOT_QUERY.pdpMainInfo({"productKey":"test"}).components.3.data.0.price',
+      '$ROOT_QUERY.pdpMainInfo({"productKey":"test"}).components.4.data.0.price',
+      '$ROOT_QUERY.pdpMainInfo({"productKey":"test"}).components.0.data.0.price',
+      '$ROOT_QUERY.pdpMainInfo({"productKey":"abc123"}).components.15.data.0.price',
+    ]
+
+    const regex = /\.components\.\d+\.data\.0\.price$/
+
+    for (const key of testKeys) {
+      expect(regex.test(key)).toBe(true)
+    }
+  })
+
+  it('should not match invalid price keys', () => {
+    // Keys that should NOT match the price regex pattern
+    const invalidKeys = [
+      '$ROOT_QUERY.pdpMainInfo({"productKey":"test"}).components.3.data.0.stock', // stock not price
+      '$ROOT_QUERY.pdpMainInfo({"productKey":"test"}).components.3.data.1.price', // data.1 not data.0
+      'pdpBasicInfo123', // no components pattern
+    ]
+
+    const regex = /\.components\.\d+\.data\.0\.price$/
+
+    for (const key of invalidKeys) {
+      expect(regex.test(key)).toBe(false)
+    }
+  })
+
+  it('should match valid price keys only with correct prefix + regex', () => {
+    // Test the full adapter logic: prefix check + regex
+    const validKeys = [
+      '$ROOT_QUERY.pdpMainInfo({"productKey":"test"}).components.3.data.0.price',
+      '$ROOT_QUERY.pdpMainInfo({"productKey":"abc"}).components.5.data.0.price',
+    ]
+
+    const invalidKeys = [
+      'someOtherKey.components.3.data.0.price', // wrong prefix
+      '$ROOT_QUERY.somethingElse.components.3.data.0.price', // wrong prefix
+    ]
+
+    for (const key of validKeys) {
+      expect(key.startsWith('$ROOT_QUERY.pdpMainInfo') && /\.components\.\d+\.data\.0\.price$/.test(key)).toBe(true)
+    }
+
+    for (const key of invalidKeys) {
+      expect(key.startsWith('$ROOT_QUERY.pdpMainInfo') && /\.components\.\d+\.data\.0\.price$/.test(key)).toBe(false)
+    }
+  })
+
+  it('should find price object in cache using regex pattern', () => {
     const cache = loadCacheFromHTML()
     if (!cache) throw new Error('Cache is null')
 
+    // Use regex pattern to match any component index (e.g., .3., .4., etc.)
     const priceKey = Object.keys(cache).find(
-      (k) => k.startsWith('$ROOT_QUERY.pdpMainInfo') && k.endsWith('.components.3.data.0.price')
+      (k) => k.startsWith('$ROOT_QUERY.pdpMainInfo') && /\.components\.\d+\.data\.0\.price$/.test(k)
     )
 
     expect(priceKey).toBeDefined()
@@ -69,12 +122,13 @@ describe('Tokopedia Apollo Cache Extraction', () => {
     expect(priceObj.discPercentage).toBe('1%')
   })
 
-  it('should find stock object in cache', () => {
+  it('should find stock object in cache using regex pattern', () => {
     const cache = loadCacheFromHTML()
     if (!cache) throw new Error('Cache is null')
 
+    // Use regex pattern to match any component index (e.g., .3., .4., etc.)
     const stockKey = Object.keys(cache).find(
-      (k) => k.startsWith('$ROOT_QUERY.pdpMainInfo') && k.endsWith('.components.3.data.0.stock')
+      (k) => k.startsWith('$ROOT_QUERY.pdpMainInfo') && /\.components\.\d+\.data\.0\.stock$/.test(k)
     )
 
     expect(stockKey).toBeDefined()
