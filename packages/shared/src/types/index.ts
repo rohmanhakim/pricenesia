@@ -70,3 +70,83 @@ export interface HealthResponse {
   timestamp: string
   version?: string
 }
+
+// -----------------------------------------------------------------------------
+// Listing Types
+// -----------------------------------------------------------------------------
+
+export type Platform = 'tokopedia' | 'shopee' | 'blibli' | 'lazada' | 'tiktokshop'
+
+export type SellerTier = 'official_store' | 'mall' | 'verified' | 'regular'
+
+export type ListingCondition = 'new' | 'used'
+
+export type StockStatus = 'available' | 'limited' | 'out_of_stock'
+
+export interface Listing {
+  id: string
+  canonical_product_id: string
+  platform: Platform
+  platform_product_id: string | null
+  seller_id: string | null
+  seller_name: string
+  seller_tier: SellerTier | null
+  raw_url: string
+  referral_url: string | null
+  is_active: number
+  is_pinned_seller: number
+  condition: ListingCondition
+  added_at: string
+  last_scraped_at: string | null
+}
+
+export interface AddListingRequest {
+  canonical_product_id: string
+  platform: Platform
+  platform_product_id?: string
+  seller_id?: string
+  seller_name: string
+  seller_tier?: SellerTier
+  raw_url: string
+  condition?: ListingCondition
+  is_pinned_seller?: boolean
+}
+
+export interface AddListingResponse {
+  id: string
+  canonical_product_id: string
+  platform: Platform
+  platform_product_id: string | null
+  seller_id: string | null
+  seller_name: string
+  seller_tier: SellerTier | null
+  raw_url: string
+  referral_url: string | null
+  is_active: number
+  is_pinned_seller: number
+  condition: ListingCondition
+  added_at: string
+  last_scraped_at: string | null
+}
+
+export interface ListingListResponse {
+  listings: Listing[]
+  total: number
+}
+
+export interface ListingListFilters {
+  canonical_product_id?: string
+  platform?: Platform
+  is_active?: boolean
+  condition?: ListingCondition
+}
+
+export interface UpdateListingRequest {
+  seller_name?: string
+  seller_tier?: SellerTier
+  raw_url?: string
+  referral_url?: string
+  is_active?: boolean
+  is_pinned_seller?: boolean
+  condition?: ListingCondition
+}

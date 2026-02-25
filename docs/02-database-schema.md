@@ -48,6 +48,7 @@ CREATE TABLE platform_listings (
   referral_url        TEXT,             -- current injected affiliate URL (managed by redirector)
   is_active           INTEGER DEFAULT 1,
   is_pinned_seller    INTEGER DEFAULT 1, -- explicitly trusted by you
+  condition           TEXT DEFAULT 'new', -- 'new' | 'used'
   added_at            TEXT DEFAULT (datetime('now')),
   last_scraped_at     TEXT
 );
@@ -60,6 +61,7 @@ CREATE INDEX idx_listings_platform ON platform_listings(platform);
 - `raw_url` never changes. `referral_url` can be updated independently when affiliate codes rotate.
 - `is_pinned_seller` must be true for a listing to be included in daily scrape jobs.
 - `seller_tier` is set at ingestion and can inform trust signals on the storefront.
+- `condition` indicates whether the item is new or used. Useful for filtering used items which typically have lower prices.
 
 ---
 

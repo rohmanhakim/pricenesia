@@ -38,6 +38,7 @@ This document explains the relationship between `canonical_products` and `platfo
 - One canonical product can have multiple platform listings (1:N relationship)
 - Each listing belongs to exactly one canonical product
 - Historical price snapshots are tied to listings, not products directly
+- The `condition` field (`new` | `used`) distinguishes item condition, useful for filtering used items
 
 ---
 

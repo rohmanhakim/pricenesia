@@ -82,10 +82,92 @@ GET    /api/products/:id      → Get product details
 PATCH  /api/products/:id      → Update product (partial update)
 DELETE /api/products/:id      → Soft delete product
 POST   /api/listings          → Add a new platform listing
+GET    /api/listings          → List all listings (with optional filters)
 GET    /api/listings/:id      → Get listing details
-PATCH  /api/listings/:id     → Update listing (mark inactive, change seller tier)
+PATCH  /api/listings/:id      → Update listing (mark inactive, change seller tier)
 POST   /api/listings/:id/scrape  → Trigger manual re-scrape of a specific listing
 ```
+
+### Listing Endpoints Details
+
+#### POST /api/listings
+
+Creates a new platform listing. Requires an existing canonical product.
+
+**Request Body:**
+```json
+{
+  "canonical_product_id": "sony-ps4-slim-1tb-cuh2006",
+  "platform": "tokopedia",
+  "platform_product_id": "prod-12345",
+  "seller_id": "shop-ibox",
+  "seller_name": "iBox Official Store",
+  "seller_tier": "official_store",
+  "raw_url": "https://tokopedia.com/...",
+  "condition": "new",
+  "is_pinned_seller": true
+}
+```
+
+**Required Fields:**
+- `canonical_product_id` — Must reference an existing product
+- `platform` — One of: `tokopedia`, `shopee`, `blibli`, `lazada`, `tiktokshop`
+- `seller_name` — Display name of the seller
+- `raw_url` — Original product URL (without affiliate params)
+
+**Optional Fields:**
+- `platform_product_id` — Platform's own product ID
+- `seller_id` — Platform's seller/shop ID
+- `seller_tier` — One of: `official_store`, `mall`, `verified`, `regular`
+- `condition` — One of: `new`, `used` (default: `new`)
+- `is_pinned_seller` — Whether to include in daily scrape (default: `true`)
+
+**Response:** `201 Created`
+```json
+{
+  "id": "uuid-here",
+  "canonical_product_id": "sony-ps4-slim-1tb-cuh2006",
+  "platform": "tokopedia",
+  "platform_product_id": "prod-12345",
+  "seller_id": "shop-ibox",
+  "seller_name": "iBox Official Store",
+  "seller_tier": "official_store",
+  "raw_url": "https://tokopedia.com/...",
+  "referral_url": null,
+  "is_active": 1,
+  "is_pinned_seller": 1,
+  "condition": "new",
+  "added_at": "2024-01-15T10:30:00Z",
+  "last_scraped_at": null
+}
+```
+
+#### GET /api/listings
+
+Lists all listings with optional query filters.
+
+**Query Parameters:**
+- `canonical_product_id` — Filter by product ID
+- `platform` — Filter by platform (`tokopedia`, `shopee`, etc.)
+- `is_active` — Filter by active status (`true` or `false`)
+- `condition` — Filter by condition (`new` or `used`)
+
+**Example:**
+```
+GET /api/listings?canonical_product_id=sony-ps4-slim-1tb-cuh2006&platform=tokopedia
+```
+
+**Response:**
+```json
+{
+  "listings": [...],
+  "total": 5
+}
+```
+
+#### GET /api/listings/:id
+
+Gets a single listing by its UUID.
 
 ### Authentication
 
