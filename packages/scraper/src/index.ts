@@ -6,6 +6,7 @@
 
 import { PriceRefreshWorkflow } from './workflows/price-refresh'
 import { BatchPriceRefreshWorkflow } from './workflows/batch-price-refresh'
+import { renderPage, renderPageForPlatform, createBrowserPage } from './browser'
 import type { Env } from './types'
 
 // Re-export for external use
@@ -16,7 +17,7 @@ export {
   renderPage, 
   renderPageForPlatform, 
   createBrowserPage 
-} from './browser'
+}
 
 // Export validation utilities
 export { 
@@ -197,8 +198,50 @@ export default {
       return handleScrapeStatus(instanceId, env)
     }
 
+    // Test browser rendering directly
+    if (path === '/test-browser' && request.method === 'GET') {
+      const testUrl = url.searchParams.get('url')
+      
+      if (!testUrl) {
+        return new Response(JSON.stringify({
+          error: 'Missing URL parameter',
+          usage: 'GET /test-browser?url=https://example.com'
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+
+      try {
+        const startTime = Date.now()
+        const result = await renderPage(testUrl, env, { timeout: 15000 })
+        const duration = Date.now() - startTime
+
+        return new Response(JSON.stringify({
+          success: true,
+          url: testUrl,
+          finalUrl: result.finalUrl,
+          duration_ms: duration,
+          html_length: result.html.length,
+          html_preview: result.html.substring(0, 500) + '...',
+        }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      } catch (error) {
+        return new Response(JSON.stringify({
+          success: false,
+          url: testUrl,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+    }
+
     // Default response
-    return new Response('Pricenesia Scraper API\n\nEndpoints:\n  POST /scrape/start - Start batch scrape\n  POST /scrape/stop - Pause workflow\n  GET /scrape/status/:id - Get status', {
+    return new Response('Pricenesia Scraper API\n\nEndpoints:\n  POST /scrape/start - Start batch scrape\n  POST /scrape/stop - Pause workflow\n  GET /scrape/status/:id - Get status\n  GET /test-browser?url=<url> - Test browser rendering', {
       status: 200,
       headers: { 'Content-Type': 'text/plain' },
     })
