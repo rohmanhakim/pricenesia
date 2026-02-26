@@ -4,13 +4,13 @@
  * Provides Puppeteer-based page rendering for Cloudflare Workers.
  *
  * Lifecycle contract:
- * - renderPageForPlatform: caller must call result.browser.disconnect() when done
- * - renderPage: caller must call result.browser.close() when done
- * Both functions guarantee the browser is cleaned up on internal errors via try/finally.
+ * - Both functions return a RenderResult with a page object and dispose() method
+ * - Caller MUST call dispose() when done to release browser resources
+ * - dispose() is async and should be awaited
+ * - On internal error, browser is cleaned up automatically before throwing
  */
 
 import puppeteer from '@cloudflare/puppeteer'
-import type { PuppeteerPage } from '@pricenesia/adapters'
 import type { Env, RenderOptions, RenderResult } from './types'
 import { TOKOPEDIA_PRICE_KEY_PATTERN } from '@pricenesia/shared'
 
@@ -148,10 +148,8 @@ async function waitForPlatformReady(page: any, platform: string): Promise<void> 
 /**
  * Render a product page with platform-aware configuration.
  *
- * Caller is responsible for calling result.browser.disconnect() when done
- * to return the session to the Cloudflare pool.
- *
- * On internal error, the browser is disconnected automatically before throwing.
+ * Returns a RenderResult with page access for live extraction.
+ * Caller MUST call dispose() when done to return session to pool.
  */
 export async function renderPageForPlatform(
   url: string,
@@ -206,11 +204,13 @@ export async function renderPageForPlatform(
       html,
       finalUrl,
       duration,
-      page: page as unknown as PuppeteerPage,
-      browser: browser as RenderResult['browser'],
+      page,
+      dispose: async () => {
+        browser.disconnect()
+      },
     }
   } catch (err) {
-    // Ensure session is returned to pool even on failure
+    // On error, clean up before rethrowing
     browser.disconnect()
     throw err
   }
@@ -219,8 +219,8 @@ export async function renderPageForPlatform(
 /**
  * Lower-level render for non-platform pages (e.g. health checks, internal tools).
  *
- * Caller is responsible for calling result.browser.close() when done.
- * On internal error, the browser is closed automatically before throwing.
+ * Returns a RenderResult with page access for live extraction.
+ * Caller MUST call dispose() when done to close the browser.
  */
 export async function renderPage(
   url: string,
@@ -255,10 +255,13 @@ export async function renderPage(
       html,
       finalUrl,
       duration,
-      page: page as unknown as PuppeteerPage,
-      browser: browser as RenderResult['browser'],
+      page,
+      dispose: async () => {
+        await browser.close()
+      },
     }
   } catch (err) {
+    // On error, clean up before rethrowing
     await browser.close()
     throw err
   }
