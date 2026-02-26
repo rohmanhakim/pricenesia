@@ -94,76 +94,82 @@ export class BatchPriceRefreshWorkflow extends WorkflowEntrypoint<Env, BatchWork
             await sleep(jitterDelay())
           }
           
-          // Fetch page
+          // Fetch page with browser
           const rendered = await renderPageForPlatform(
             listing.raw_url,
             this.env,
             listing.platform as Platform
           )
           
-          // Extract price
-          const extracted = await runExtractionSafe(
-            listing.platform as Platform,
-            rendered.html
-          )
-          
-          if (!extracted.success) {
+          try {
+            // Extract price using the live page object (not HTML string)
+            // The adapter needs page.evaluate() to access window.__cache
+            const extracted = await runExtractionSafe(
+              listing.platform as Platform,
+              rendered.page
+            )
+            
+            if (!extracted.success) {
+              return {
+                listing_id: listing.id,
+                success: false,
+                error: `${extracted.error._tag}: ${extracted.error.message}`,
+              }
+            }
+            
+            // Get previous snapshot for validation
+            const previousSnapshot = await findLatestPriceForListing(
+              this.env.DB,
+              listing.id
+            )
+            
+            // Validate
+            const context = createValidationContext(
+              { platform_id: listing.platform },
+              previousSnapshot ? { price: previousSnapshot.price } : null
+            )
+            
+            const validated = Effect.runSync(validatePrice(extracted.data, context))
+            
+            // Persist snapshot
+            if (validated.valid) {
+              await insertPriceSnapshot(this.env.DB, {
+                id: randomUUID(),
+                listing_id: listing.id,
+                price: extracted.data.price ?? 0,
+                original_price: extracted.data.original_price ?? undefined,
+                stock_status: extracted.data.stock_status ?? undefined,
+                seller_name: extracted.data.seller_name ?? undefined,
+              })
+            } else {
+              // Insert to flagged snapshots
+              await insertFlaggedSnapshot(this.env.DB, {
+                id: randomUUID(),
+                listing_id: listing.id,
+                scraped_price: extracted.data.price,
+                last_known_price: previousSnapshot?.price ?? null,
+                change_ratio: previousSnapshot && extracted.data.price
+                  ? Math.abs(extracted.data.price - previousSnapshot.price) / previousSnapshot.price
+                  : null,
+                flag_reason: validated.reason ?? 'unknown',
+              })
+            }
+            
+            // Update last_scraped_at
+            await updateListingScrapedAt(this.env.DB, listing.id)
+            
             return {
               listing_id: listing.id,
-              success: false,
-              error: `${extracted.error._tag}: ${extracted.error.message}`,
+              success: true,
+              data: {
+                ...extracted.data,
+                valid: validated.valid,
+                flag_reason: validated.reason,
+              },
             }
-          }
-          
-          // Get previous snapshot for validation
-          const previousSnapshot = await findLatestPriceForListing(
-            this.env.DB,
-            listing.id
-          )
-          
-          // Validate
-          const context = createValidationContext(
-            { platform_id: listing.platform },
-            previousSnapshot ? { price: previousSnapshot.price } : null
-          )
-          
-          const validated = Effect.runSync(validatePrice(extracted.data, context))
-          
-          // Persist snapshot
-          if (validated.valid) {
-            await insertPriceSnapshot(this.env.DB, {
-              id: randomUUID(),
-              listing_id: listing.id,
-              price: extracted.data.price ?? 0,
-              original_price: extracted.data.original_price ?? undefined,
-              stock_status: extracted.data.stock_status ?? undefined,
-              seller_name: extracted.data.seller_name ?? undefined,
-            })
-          } else {
-            // Insert to flagged snapshots
-            await insertFlaggedSnapshot(this.env.DB, {
-              id: randomUUID(),
-              listing_id: listing.id,
-              scraped_price: extracted.data.price,
-              last_known_price: previousSnapshot?.price ?? null,
-              change_ratio: previousSnapshot && extracted.data.price
-                ? Math.abs(extracted.data.price - previousSnapshot.price) / previousSnapshot.price
-                : null,
-              flag_reason: validated.reason ?? 'unknown',
-            })
-          }
-          
-          // Update last_scraped_at
-          await updateListingScrapedAt(this.env.DB, listing.id)
-          
-          return {
-            listing_id: listing.id,
-            success: true,
-            data: {
-              ...extracted.data,
-              valid: validated.valid,
-              flag_reason: validated.reason,
-            },
+          } finally {
+            // Always close the browser to free resources
+            await rendered.browser.close()
           }
         })
         

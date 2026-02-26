@@ -145,8 +145,8 @@ export async function triggerPriceRefresh(
  */
 export async function triggerBatchRefresh(
   workflow: Env['PRICE_REFRESH_WORKFLOW'],
-  listings: Array<{ id: number; platform_id: string; raw_url: string }>
-): Promise<Array<{ listing_id: number; workflow_id: string }>> {
+  listings: Array<{ id: string; platform_id: string; raw_url: string }>
+): Promise<Array<{ listing_id: string; workflow_id: string }>> {
   const results = await Promise.all(
     listings.map(async (listing) => {
       const params: WorkflowParams = {

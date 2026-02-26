@@ -13,6 +13,7 @@
 
 import { Effect } from 'effect'
 import type { Listing } from '@pricenesia/shared/types'
+import { TOKOPEDIA_PRICE_KEY_PATTERN } from '@pricenesia/shared'
 import type {
   ScrapedData,
   PuppeteerPage,
@@ -122,7 +123,7 @@ function extractApolloCache(page: PuppeteerPage): Effect.Effect<TokopediaApolloC
  */
 function findPriceObject(cache: TokopediaApolloCache): TokopediaPriceObject | null {
   const priceKey = Object.keys(cache).find(
-    (k) => k.startsWith('$ROOT_QUERY.pdpMainInfo') && /\.components\.\d+\.data\.0\.price$/.test(k)
+    (k) => k.startsWith('$ROOT_QUERY.pdpMainInfo') && TOKOPEDIA_PRICE_KEY_PATTERN.test(k)
   )
 
   if (!priceKey) return null

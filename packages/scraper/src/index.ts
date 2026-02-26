@@ -6,7 +6,7 @@
 
 import { PriceRefreshWorkflow } from './workflows/price-refresh'
 import { BatchPriceRefreshWorkflow } from './workflows/batch-price-refresh'
-import { renderPage, renderPageForPlatform, createBrowserPage } from './browser'
+import { renderPage, renderPageForPlatform } from './browser'
 import type { Env } from './types'
 
 // Re-export for external use
@@ -15,8 +15,7 @@ export { PriceRefreshWorkflow, BatchPriceRefreshWorkflow }
 // Export browser utilities
 export { 
   renderPage, 
-  renderPageForPlatform, 
-  createBrowserPage 
+  renderPageForPlatform 
 }
 
 // Export validation utilities

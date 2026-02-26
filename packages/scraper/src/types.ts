@@ -14,8 +14,8 @@ import type { PuppeteerPage, ScrapedData } from '@pricenesia/adapters'
  * Parameters passed to the PriceRefreshWorkflow when triggered.
  */
 export interface WorkflowParams {
-  /** Platform listing ID to scrape */
-  listing_id: number
+  /** Platform listing ID to scrape (UUID string matching D1 schema) */
+  listing_id: string
   /** Platform identifier (e.g., 'tokopedia', 'shopee') */
   platform: string
   /** Product URL to scrape */
@@ -97,6 +97,13 @@ export interface RenderOptions {
 
 /**
  * Result of browser page rendering.
+ *
+ * Caller is responsible for releasing the browser when done:
+ * - renderPageForPlatform: call browser.disconnect() to return session to pool
+ * - renderPage: call browser.close() to fully terminate the session
+ *
+ * Both functions handle cleanup automatically if they throw internally,
+ * so callers only need to handle cleanup on the happy path.
  */
 export interface RenderResult {
   /** Page HTML content */
@@ -107,6 +114,15 @@ export interface RenderResult {
   duration: number
   /** Page object for further extraction */
   page: PuppeteerPage
+  /**
+   * Browser instance.
+   * - Call disconnect() after renderPageForPlatform to return to session pool
+   * - Call close() after renderPage to fully terminate
+   */
+  browser: {
+    close: () => Promise<void>
+    disconnect: () => void
+  }
 }
 
 // ============================================================================
