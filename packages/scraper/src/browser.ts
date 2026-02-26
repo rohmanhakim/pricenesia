@@ -119,17 +119,19 @@ async function waitForPlatformReady(page: any, platform: string): Promise<void> 
     // Tokopedia runs Zeus framework — product data is in window.__cache
     // (Apollo Client normalised store), not in __NEXT_DATA__ or the DOM.
     // Wait for the price key to appear in the cache before extracting.
+    // Pass pattern source as argument since waitForFunction runs in browser context
+    // where module imports are not available.
     await page.waitForFunction(
-    () => {
+      (patternSource: string) => {
+        const pattern = new RegExp(patternSource)
         const cache = (window as any).__cache
         if (!cache) return false
-        const pattern = /\.components\.\d+\.data\.0\.price$/
-        return Object.keys(cache).some(k =>
-          k.startsWith('$ROOT_QUERY.pdpMainInfo') &&
-         TOKOPEDIA_PRICE_KEY_PATTERN.test(k)
+        return Object.keys(cache).some(
+          k => k.startsWith('$ROOT_QUERY.pdpMainInfo') && pattern.test(k)
         )
-    },
-    { timeout: 10000 }
+      },
+      { timeout: 10000 },
+      TOKOPEDIA_PRICE_KEY_PATTERN.source
     ).catch(() => null)
     return
   }
