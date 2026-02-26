@@ -168,8 +168,8 @@ export class BatchPriceRefreshWorkflow extends WorkflowEntrypoint<Env, BatchWork
               },
             }
           } finally {
-            // Always close the browser to free resources
-            await rendered.browser.close()
+            // Always release browser resources
+            await rendered.dispose()
           }
         })
         

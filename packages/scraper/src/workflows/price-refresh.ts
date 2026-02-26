@@ -39,42 +39,39 @@ export class PriceRefreshWorkflow extends WorkflowEntrypoint<Env, WorkflowParams
   async run(event: WorkflowEvent<WorkflowParams>, step: WorkflowStep): Promise<WorkflowResult> {
     const { listing_id, platform, url } = event.payload
     
-    // Step 1: Fetch product page with browser rendering
-    const rendered = await step.do('fetch-page', async () => {
+    // Step 1: Fetch product page and extract price
+    const fetchResult = await step.do('fetch-and-extract', async () => {
       const result = await renderPageForPlatform(url, this.env, platform)
-      return {
-        html: result.html,
-        finalUrl: result.finalUrl,
-        duration: result.duration,
-      }
-    })
-    
-    // Step 2: Extract price using platform adapter
-    const extracted = await step.do('extract-price', async () => {
-      // Use the safe extraction helper that returns a result object
-      const result = await runExtractionSafe(platform as Platform, rendered.html)
-      
-      if (result.success) {
-        return { success: true as const, data: result.data }
-      } else {
+      try {
+        // Extract price using the live page object (not HTML string)
+        // The adapter needs page.evaluate() to access window.__cache
+        const extracted = await runExtractionSafe(platform as Platform, result.page)
+        
         return {
-          success: false as const,
-          error: `${result.error._tag}: ${result.error.message}`,
+          html: result.html,
+          finalUrl: result.finalUrl,
+          duration: result.duration,
+          extracted,
         }
+      } finally {
+        // Always release browser resources
+        await result.dispose()
       }
     })
     
     // Handle extraction failure
-    if (!extracted.success) {
+    if (!fetchResult.extracted.success) {
       return {
         listing_id: String(listing_id),
         success: false,
-        error: extracted.error,
+        error: `${fetchResult.extracted.error._tag}: ${fetchResult.extracted.error.message}`,
         completed_at: new Date().toISOString(),
       }
     }
     
-    // Step 3: Get previous snapshot for validation context
+    const extracted = fetchResult.extracted
+    
+    // Step 2: Get previous snapshot for validation context
     const previousSnapshot = await step.do('get-previous', async () => {
       const result = await findLatestPriceForListing(this.env.DB, String(listing_id))
       return result

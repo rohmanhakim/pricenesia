@@ -211,9 +211,10 @@ export default {
         })
       }
 
+      let result
       try {
         const startTime = Date.now()
-        const result = await renderPage(testUrl, env, { timeout: 15000 })
+        result = await renderPage(testUrl, env, { timeout: 15000 })
         const duration = Date.now() - startTime
 
         return new Response(JSON.stringify({
@@ -236,6 +237,11 @@ export default {
           status: 500,
           headers: { 'Content-Type': 'application/json' },
         })
+      } finally {
+        // Always release browser resources
+        if (result) {
+          await result.dispose()
+        }
       }
     }
 

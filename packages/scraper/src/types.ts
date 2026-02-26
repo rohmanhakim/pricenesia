@@ -4,7 +4,7 @@
  * Type definitions for the price refresh workflow and browser rendering.
  */
 
-import type { PuppeteerPage, ScrapedData } from '@pricenesia/adapters'
+import type { ScrapedData } from '@pricenesia/adapters'
 
 // ============================================================================
 // Workflow Types
@@ -98,12 +98,11 @@ export interface RenderOptions {
 /**
  * Result of browser page rendering.
  *
- * Caller is responsible for releasing the browser when done:
- * - renderPageForPlatform: call browser.disconnect() to return session to pool
- * - renderPage: call browser.close() to fully terminate the session
- *
- * Both functions handle cleanup automatically if they throw internally,
- * so callers only need to handle cleanup on the happy path.
+ * Lifecycle contract:
+ * - The page object is provided for live extraction (page.evaluate())
+ * - Caller MUST call dispose() when done to release browser resources
+ * - For renderPageForPlatform: returns session to Cloudflare pool
+ * - For renderPage: closes the browser entirely
  */
 export interface RenderResult {
   /** Page HTML content */
@@ -112,17 +111,10 @@ export interface RenderResult {
   finalUrl: string
   /** Time taken in ms */
   duration: number
-  /** Page object for further extraction */
-  page: PuppeteerPage
-  /**
-   * Browser instance.
-   * - Call disconnect() after renderPageForPlatform to return to session pool
-   * - Call close() after renderPage to fully terminate
-   */
-  browser: {
-    close: () => Promise<void>
-    disconnect: () => void
-  }
+  /** Page object for live extraction via page.evaluate() */
+  page: unknown
+  /** Dispose of browser resources. MUST be called when done. */
+  dispose: () => Promise<void>
 }
 
 // ============================================================================
